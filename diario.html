@@ -17,7 +17,7 @@
 <div class="wrap">
   <header class="page-header">
     <h1>Diário de Estudos</h1>
-    <p>Pode registrar quantas vezes quiser no mesmo dia — cada estudo vira um card separado</p>
+    <p>Pode registrar quantas vezes quiser no mesmo dia, em qualquer matéria</p>
   </header>
 
   <div class="card">
@@ -28,14 +28,14 @@
           <input type="date" id="entry-date" required>
         </div>
         <div>
-          <label class="field-label">Assunto</label>
-          <select id="entry-subject">
-            <option value="quimica">Química — Tabela Periódica</option>
-            <option value="genetica">Genética</option>
-            <option value="historia">História — Revolução Industrial</option>
-            <option value="outro">Outro</option>
-          </select>
+          <label class="field-label">Matéria</label>
+          <select id="entry-subject"></select>
         </div>
+      </div>
+
+      <div id="custom-subject-wrap" style="display:none;">
+        <label class="field-label">Qual matéria?</label>
+        <input type="text" id="entry-custom-subject" placeholder="Ex: Redação, Espanhol, Ciências...">
       </div>
 
       <label class="field-label">O que você estudou? (seja específico: o que leu, o que praticou, o que ainda não entendeu)</label>
@@ -70,13 +70,7 @@
   <div class="card">
     <h3 style="margin-top:0;">Registros</h3>
     <div class="two-col" style="margin-bottom:16px;">
-      <select id="filter-subject">
-        <option value="all">Todos os assuntos</option>
-        <option value="quimica">Química</option>
-        <option value="genetica">Genética</option>
-        <option value="historia">História</option>
-        <option value="outro">Outro</option>
-      </select>
+      <select id="filter-subject"><option value="all">Todas as matérias</option></select>
       <select id="filter-author">
         <option value="all">Eu e meu amigo</option>
         <option value="me">Só eu</option>
@@ -89,14 +83,23 @@
 
 <script type="module">
 import { ensureMyName, addStudyEntry, listenStudyEntries } from "./firebase-init.js";
+import { SUBJECTS, subjectLabel, subjectColor } from "./subjects.js";
 
 const myName = ensureMyName();
 document.getElementById('entry-date').valueAsDate = new Date();
 
-function subjectLabel(s){
-  const map = {quimica:'Química', genetica:'Genética', historia:'História', outro:'Outro'};
-  return map[s] || 'Outro';
-}
+// popular selects de matéria
+const subjectSelect = document.getElementById('entry-subject');
+const filterSubjectSelect = document.getElementById('filter-subject');
+SUBJECTS.forEach(s => {
+  subjectSelect.innerHTML += `<option value="${s.id}">${s.label}</option>`;
+  filterSubjectSelect.innerHTML += `<option value="${s.id}">${s.label}</option>`;
+});
+
+subjectSelect.addEventListener('change', () => {
+  document.getElementById('custom-subject-wrap').style.display = subjectSelect.value === 'outro' ? 'block' : 'none';
+});
+
 function escapeHtml(str){
   const div = document.createElement('div');
   div.textContent = str || '';
@@ -120,7 +123,7 @@ document.getElementById('entry-photo').addEventListener('change', function(e){
   const reader = new FileReader();
   reader.onload = function(ev){
     pendingPhoto = ev.target.result;
-    preview.innerHTML = '<img src="'+pendingPhoto+'" style="max-width:140px; border-radius:6px; border:1px solid var(--rule);">';
+    preview.innerHTML = '<img src="'+pendingPhoto+'" style="max-width:140px; border-radius:10px; border:1px solid var(--rule);">';
   };
   reader.readAsDataURL(file);
 });
@@ -129,17 +132,16 @@ document.getElementById('entry-form').addEventListener('submit', async function(
   e.preventDefault();
 
   const date = document.getElementById('entry-date').value;
-  const subject = document.getElementById('entry-subject').value;
+  const subject = subjectSelect.value;
+  const customSubject = document.getElementById('entry-custom-subject').value.trim();
   const notes = document.getElementById('entry-notes').value.trim();
   const minutes = document.getElementById('entry-minutes').value.trim();
   const difficulty = document.getElementById('entry-difficulty').value;
   const tagsRaw = document.getElementById('entry-tags').value.trim();
   const tags = tagsRaw ? tagsRaw.split(',').map(t => t.trim()).filter(Boolean) : [];
 
-  if(!notes){
-    alert('Escreva um pouco sobre o que você estudou.');
-    return;
-  }
+  if(!notes){ alert('Escreva um pouco sobre o que você estudou.'); return; }
+  if(subject === 'outro' && !customSubject){ alert('Digite o nome da matéria.'); return; }
 
   const btn = document.getElementById('submit-btn');
   btn.disabled = true;
@@ -148,7 +150,9 @@ document.getElementById('entry-form').addEventListener('submit', async function(
   try{
     await addStudyEntry({
       author: myName,
-      date, subject, notes, minutes, difficulty, tags,
+      date, subject,
+      customSubject: subject === 'outro' ? customSubject : '',
+      notes, minutes, difficulty, tags,
       photo: pendingPhoto,
       createdAt: Date.now()
     });
@@ -156,6 +160,7 @@ document.getElementById('entry-form').addEventListener('submit', async function(
     document.getElementById('entry-form').reset();
     document.getElementById('entry-date').valueAsDate = new Date();
     document.getElementById('photo-preview').innerHTML = '';
+    document.getElementById('custom-subject-wrap').style.display = 'none';
     pendingPhoto = null;
   }catch(err){
     console.error(err);
@@ -185,7 +190,6 @@ function renderEntries(){
     return;
   }
 
-  // agrupar por data
   const groups = {};
   entries.forEach(e => {
     if(!groups[e.date]) groups[e.date] = [];
@@ -201,7 +205,7 @@ function renderEntries(){
           ${e.photo ? `<img src="${e.photo}" alt="foto do estudo">` : ''}
           <div class="entry-body">
             <div class="meta-row">
-              <span class="subject-tag ${e.subject}">${subjectLabel(e.subject)}</span>
+              <span class="subject-tag" style="background:${subjectColor(e.subject)}">${escapeHtml(subjectLabel(e.subject, e.customSubject))}</span>
               <span class="author-badge">${escapeHtml(e.author)}</span>
               ${e.minutes ? `<span class="chip">${escapeHtml(e.minutes)} min</span>` : ''}
               ${e.difficulty ? `<span class="chip ${e.difficulty}">${e.difficulty === 'facil' ? 'Fácil' : e.difficulty === 'dificil' ? 'Difícil' : 'Médio'}</span>` : ''}
@@ -215,7 +219,15 @@ function renderEntries(){
   `).join('');
 }
 
-listenStudyEntries((entries) => { allEntries = entries; renderEntries(); });
+listenStudyEntries(
+  (entries) => { allEntries = entries; renderEntries(); },
+  () => {
+    document.getElementById('entries-list').innerHTML = `
+      <div class="error-state">
+        Não consegui carregar os registros agora. Confira se as regras do Firestore foram publicadas e sua internet.
+      </div>`;
+  }
+);
 </script>
 
 </body>

@@ -39,24 +39,27 @@ import { ensureMyName, listenQuizzes, listenQuizAttempts } from "./firebase-init
 
 const myName = ensureMyName();
 let allAttempts = [];
+let latestQuizzes = [];
+let quizzesLoaded = false;
+let attemptsLoaded = false;
 
 function escapeHtml(str){
   const div = document.createElement('div');
   div.textContent = str || '';
   return div.innerHTML;
 }
-
 function attemptsFor(quizId){
   return allAttempts.filter(a => a.quizId === quizId);
 }
 
-function renderQuizzes(quizzes){
+function renderQuizzes(){
+  if(!quizzesLoaded) return;
   const box = document.getElementById('quiz-list');
-  if(quizzes.length === 0){
+  if(latestQuizzes.length === 0){
     box.innerHTML = '<p class="empty-state">Nenhuma prova criada ainda.</p>';
     return;
   }
-  box.innerHTML = quizzes.map(q => {
+  box.innerHTML = latestQuizzes.map(q => {
     const attempts = attemptsFor(q.id);
     const mine = attempts.filter(a => a.author === myName);
     const lastMine = mine.sort((a,b) => new Date(b.date) - new Date(a.date))[0];
@@ -75,6 +78,7 @@ function renderQuizzes(quizzes){
 }
 
 function renderLeaderboard(){
+  if(!attemptsLoaded) return;
   const box = document.getElementById('leaderboard');
   if(allAttempts.length === 0){
     box.innerHTML = '<p class="empty-state">Ninguém fez nenhuma prova ainda.</p>';
@@ -97,9 +101,20 @@ function renderLeaderboard(){
   `;
 }
 
-let latestQuizzes = [];
-listenQuizzes((quizzes) => { latestQuizzes = quizzes; renderQuizzes(quizzes); });
-listenQuizAttempts((attempts) => { allAttempts = attempts; renderQuizzes(latestQuizzes); renderLeaderboard(); });
+listenQuizzes(
+  (quizzes) => { latestQuizzes = quizzes; quizzesLoaded = true; renderQuizzes(); },
+  () => {
+    document.getElementById('quiz-list').innerHTML = `
+      <div class="error-state">Não consegui carregar as provas. Confira as regras do Firestore e sua internet.</div>`;
+  }
+);
+listenQuizAttempts(
+  (attempts) => { allAttempts = attempts; attemptsLoaded = true; renderQuizzes(); renderLeaderboard(); },
+  () => {
+    document.getElementById('leaderboard').innerHTML = `
+      <div class="error-state">Não consegui carregar o placar. Confira as regras do Firestore e sua internet.</div>`;
+  }
+);
 </script>
 
 </body>

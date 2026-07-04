@@ -38,12 +38,15 @@ export function ensureMyName(){
 export async function addStudyEntry(entry){
   await addDoc(collection(db, "studyEntries"), entry);
 }
-export function listenStudyEntries(callback){
+export function listenStudyEntries(callback, onError){
   const q = query(collection(db, "studyEntries"), orderBy("date", "desc"));
   return onSnapshot(q, (snap) => {
     const entries = [];
     snap.forEach(d => entries.push({ id: d.id, ...d.data() }));
     callback(entries);
+  }, (err) => {
+    console.error('Erro ao carregar studyEntries:', err);
+    if(onError) onError(err);
   });
 }
 
@@ -51,12 +54,15 @@ export function listenStudyEntries(callback){
 export async function addQuiz(quiz){
   await addDoc(collection(db, "quizzes"), quiz);
 }
-export function listenQuizzes(callback){
+export function listenQuizzes(callback, onError){
   const q = query(collection(db, "quizzes"), orderBy("dateCreated", "desc"));
   return onSnapshot(q, (snap) => {
     const quizzes = [];
     snap.forEach(d => quizzes.push({ id: d.id, ...d.data() }));
     callback(quizzes);
+  }, (err) => {
+    console.error('Erro ao carregar quizzes:', err);
+    if(onError) onError(err);
   });
 }
 export async function getQuizById(id){
@@ -69,11 +75,14 @@ export async function getQuizById(id){
 export async function addQuizAttempt(attempt){
   await addDoc(collection(db, "quizAttempts"), attempt);
 }
-export function listenQuizAttempts(callback){
+export function listenQuizAttempts(callback, onError){
   const q = query(collection(db, "quizAttempts"), orderBy("date", "desc"));
   return onSnapshot(q, (snap) => {
     const attempts = [];
     snap.forEach(d => attempts.push({ id: d.id, ...d.data() }));
     callback(attempts);
+  }, (err) => {
+    console.error('Erro ao carregar quizAttempts:', err);
+    if(onError) onError(err);
   });
 }

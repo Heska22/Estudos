@@ -1,72 +1,84 @@
+@import url('https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,600;9..144,700&family=Inter:wght@400;500;600;700&display=swap');
+
 :root{
-  --bg: #f6f3ec;
+  --bg: #f3efe6;
   --paper: #ffffff;
-  --ink: #24272b;
-  --rule: #d8d2c4;
-  --accent-quim: #2f6f5e;
-  --accent-gen: #7a4f9e;
-  --accent-hist: #a15c2b;
+  --ink: #1f2225;
+  --rule: #e2dbc9;
   --ok: #2f6f5e;
   --bad: #b3492f;
-  --muted: #6b6a63;
+  --muted: #767569;
+  --accent: #b3502f;
 }
 *{box-sizing:border-box;}
 body{
   margin:0;
-  background:var(--bg);
+  background: var(--bg);
+  background-image: radial-gradient(circle at 15% 0%, #faf6ec 0%, var(--bg) 55%);
   color:var(--ink);
-  font-family: "Georgia", "Iowan Old Style", serif;
-  line-height:1.5;
+  font-family: "Inter", "Helvetica Neue", Arial, sans-serif;
+  line-height:1.55;
+  -webkit-font-smoothing: antialiased;
 }
 .wrap{
-  max-width: 780px;
+  max-width: 800px;
   margin: 0 auto;
-  padding: 24px 20px 80px;
+  padding: 28px 20px 90px;
 }
+
 nav.topnav{
   display:flex;
-  gap: 4px;
-  padding: 14px 20px;
+  gap: 6px;
+  padding: 16px 20px;
   background: var(--ink);
-  font-family: "Helvetica Neue", Arial, sans-serif;
 }
 nav.topnav a{
-  color: #e9e5da;
+  color: #cfcdc3;
   text-decoration:none;
   font-size: 0.85rem;
-  padding: 8px 14px;
-  border-radius: 5px;
-  letter-spacing: 0.3px;
+  font-weight:600;
+  padding: 9px 16px;
+  border-radius: 999px;
+  letter-spacing: 0.2px;
+  transition: background 0.15s ease, color 0.15s ease;
 }
 nav.topnav a.active{
-  background: rgba(255,255,255,0.15);
-  color:#fff;
-  font-weight:700;
+  background: #fff;
+  color: var(--ink);
 }
-nav.topnav a:hover{ background: rgba(255,255,255,0.1); }
+nav.topnav a:hover:not(.active){ background: rgba(255,255,255,0.12); color:#fff; }
 
 header.page-header{
-  border-bottom: 3px solid var(--ink);
-  padding-bottom: 16px;
-  margin-bottom: 28px;
+  margin-bottom: 30px;
+  padding-bottom: 18px;
+  border-bottom: 2px solid var(--ink);
+  position:relative;
 }
 header.page-header h1{
-  font-size: 1.6rem;
+  font-family: "Fraunces", "Georgia", serif;
+  font-weight: 600;
+  font-size: 2rem;
   margin: 0 0 6px;
+  letter-spacing: -0.3px;
 }
 header.page-header p{
   margin:0;
   color: var(--muted);
-  font-family: "Helvetica Neue", Arial, sans-serif;
-  font-size: 0.92rem;
+  font-size: 0.95rem;
 }
 
 .card{
   background: var(--paper);
   border: 1px solid var(--rule);
-  border-radius: 8px;
-  padding: 18px 20px;
-  margin-bottom: 16px;
+  border-radius: 14px;
+  padding: 22px 24px;
+  margin-bottom: 18px;
+  box-shadow: 0 1px 2px rgba(31,34,37,0.04), 0 8px 24px -12px rgba(31,34,37,0.08);
+}
+.card h3{
+  font-family: "Fraunces", serif;
+  font-weight:600;
+  font-size: 1.15rem;
 }
 
 .stats-grid{
@@ -78,82 +90,86 @@ header.page-header p{
 .stat-box{
   background: var(--paper);
   border: 1px solid var(--rule);
-  border-radius: 8px;
-  padding: 16px;
+  border-radius: 14px;
+  padding: 20px 16px;
   text-align:center;
+  box-shadow: 0 1px 2px rgba(31,34,37,0.04);
 }
 .stat-box .num{
-  font-size: 1.8rem;
-  font-weight:700;
+  font-family: "Fraunces", serif;
+  font-size: 2rem;
+  font-weight:600;
   display:block;
+  color: var(--accent);
 }
 .stat-box .label{
-  font-family: "Helvetica Neue", Arial, sans-serif;
-  font-size: 0.75rem;
+  font-size: 0.74rem;
   color: var(--muted);
   text-transform:uppercase;
-  letter-spacing: 0.5px;
+  letter-spacing: 0.6px;
+  font-weight:600;
 }
 
 .subject-tag{
   display:inline-block;
-  font-family: "Helvetica Neue", Arial, sans-serif;
   font-size: 0.72rem;
   font-weight:700;
   text-transform:uppercase;
   letter-spacing: 0.4px;
-  padding: 3px 9px;
-  border-radius: 20px;
+  padding: 4px 11px;
+  border-radius: 999px;
   color:#fff;
 }
-.subject-tag.quimica{ background: var(--accent-quim); }
-.subject-tag.genetica{ background: var(--accent-gen); }
-.subject-tag.historia{ background: var(--accent-hist); }
-.subject-tag.outro{ background: var(--muted); }
 
 .btn{
-  font-family: "Helvetica Neue", Arial, sans-serif;
   background: var(--ink);
   color: #fff;
   border: none;
-  padding: 12px 22px;
-  border-radius: 6px;
+  padding: 13px 24px;
+  border-radius: 10px;
   font-size: 0.95rem;
+  font-weight:600;
   cursor: pointer;
   text-decoration:none;
   display:inline-block;
+  transition: transform 0.1s ease, opacity 0.15s ease;
 }
-.btn:hover{ opacity:0.9; }
+.btn:hover{ opacity:0.92; }
+.btn:active{ transform: scale(0.98); }
 .btn.secondary{
   background: transparent;
   color: var(--ink);
-  border: 1px solid var(--ink);
+  border: 1.5px solid var(--ink);
 }
 .btn.danger{
   background: transparent;
   color: var(--bad);
-  border: 1px solid var(--bad);
-  padding: 6px 12px;
+  border: 1.5px solid var(--bad);
+  padding: 6px 14px;
   font-size: 0.8rem;
 }
 
 label.field-label{
-  font-family: "Helvetica Neue", Arial, sans-serif;
   font-size: 0.82rem;
   font-weight:700;
   display:block;
-  margin-bottom: 5px;
+  margin-bottom: 6px;
   color: var(--muted);
 }
 input[type="text"], input[type="date"], select, textarea{
-  font-family: "Helvetica Neue", Arial, sans-serif;
   width:100%;
-  padding: 10px 12px;
-  border: 1px solid var(--rule);
-  border-radius: 5px;
+  padding: 11px 14px;
+  border: 1.5px solid var(--rule);
+  border-radius: 9px;
   font-size: 0.95rem;
+  font-family: inherit;
   background: var(--paper);
-  margin-bottom: 16px;
+  margin-bottom: 18px;
+  transition: border-color 0.15s ease;
+}
+input[type="text"]:focus, input[type="date"]:focus, select:focus, textarea:focus{
+  outline:none;
+  border-color: var(--ink);
 }
 textarea{ min-height: 90px; resize:vertical; }
 
@@ -166,63 +182,66 @@ textarea{ min-height: 90px; resize:vertical; }
   width: 90px;
   height: 90px;
   object-fit: cover;
-  border-radius: 6px;
+  border-radius: 10px;
   border: 1px solid var(--rule);
   flex-shrink:0;
 }
 .entry .entry-body{ flex:1; }
 .entry .entry-date{
-  font-family: "Helvetica Neue", Arial, sans-serif;
   font-size: 0.75rem;
   color: var(--muted);
-  margin-bottom: 4px;
+  margin-bottom: 6px;
+  font-weight:600;
 }
 .entry .entry-notes{
   margin: 8px 0 6px;
   font-size: 0.98rem;
 }
 .empty-state{
-  font-family: "Helvetica Neue", Arial, sans-serif;
   color: var(--muted);
   font-size: 0.9rem;
   text-align:center;
-  padding: 30px 10px;
+  padding: 34px 10px;
 }
 
 .tabs{
   display:flex;
   gap:6px;
   margin-bottom: 18px;
-  font-family: "Helvetica Neue", Arial, sans-serif;
+  background: var(--paper);
+  border: 1px solid var(--rule);
+  border-radius: 12px;
+  padding: 5px;
 }
 .tabs button{
   flex:1;
   padding: 10px 12px;
-  border: 1px solid var(--rule);
-  background: var(--paper);
-  border-radius: 6px;
+  border: none;
+  background: transparent;
+  border-radius: 8px;
   font-size: 0.85rem;
+  font-weight:600;
   cursor:pointer;
-  color: var(--ink);
+  color: var(--muted);
+  font-family: inherit;
+  transition: background 0.15s ease, color 0.15s ease;
 }
 .tabs button.active{
   background: var(--ink);
   color:#fff;
-  border-color: var(--ink);
 }
 
 .day-group{
-  margin-bottom: 22px;
+  margin-bottom: 24px;
 }
 .day-group .day-label{
-  font-family: "Helvetica Neue", Arial, sans-serif;
   font-size: 0.78rem;
   font-weight:700;
   color: var(--muted);
-  text-transform:uppercase;
-  letter-spacing: 0.5px;
-  margin-bottom: 8px;
-  padding-bottom: 6px;
+  text-transform:capitalize;
+  letter-spacing: 0.3px;
+  margin-bottom: 10px;
+  padding-bottom: 8px;
   border-bottom: 1px solid var(--rule);
 }
 
@@ -232,12 +251,11 @@ textarea{ min-height: 90px; resize:vertical; }
   flex-wrap:wrap;
   align-items:center;
   margin: 6px 0;
-  font-family: "Helvetica Neue", Arial, sans-serif;
   font-size: 0.78rem;
 }
 .chip{
-  padding: 3px 10px;
-  border-radius: 20px;
+  padding: 4px 11px;
+  border-radius: 999px;
   background: #efece3;
   color: var(--muted);
   font-weight:600;
@@ -246,11 +264,10 @@ textarea{ min-height: 90px; resize:vertical; }
 .chip.medio{ background:#fff2d6; color:#8a6412; }
 .chip.facil{ background:#e6f2ee; color:var(--ok); }
 .author-badge{
-  font-family: "Helvetica Neue", Arial, sans-serif;
   font-size: 0.72rem;
   font-weight:700;
-  padding: 2px 9px;
-  border-radius: 20px;
+  padding: 3px 11px;
+  border-radius: 999px;
   background: var(--ink);
   color:#fff;
 }
@@ -258,7 +275,7 @@ textarea{ min-height: 90px; resize:vertical; }
 .two-col{
   display:grid;
   grid-template-columns: 1fr 1fr;
-  gap: 12px;
+  gap: 14px;
 }
 @media (max-width: 560px){
   .two-col{ grid-template-columns: 1fr; }
@@ -268,14 +285,15 @@ textarea{ min-height: 90px; resize:vertical; }
   display:flex;
   justify-content:space-between;
   align-items:center;
-  padding: 14px 0;
+  gap: 14px;
+  padding: 16px 0;
   border-bottom: 1px solid var(--rule);
-  font-family: "Helvetica Neue", Arial, sans-serif;
 }
 .quiz-list-item:last-child{ border-bottom:none; }
 .quiz-list-item .quiz-title{
-  font-family: "Georgia", serif;
-  font-size: 1.05rem;
+  font-family: "Fraunces", serif;
+  font-weight:600;
+  font-size: 1.08rem;
   color: var(--ink);
   margin: 0 0 4px;
 }
@@ -285,19 +303,45 @@ textarea{ min-height: 90px; resize:vertical; }
 }
 
 .notice{
-  font-family: "Helvetica Neue", Arial, sans-serif;
   background:#fff6e0;
   border:1px solid #eadfb3;
   color:#7a5b12;
-  padding: 10px 14px;
-  border-radius: 6px;
+  padding: 12px 16px;
+  border-radius: 10px;
   font-size: 0.85rem;
-  margin-bottom: 20px;
+  margin-bottom: 22px;
+}
+.error-state{
+  background:#fbe9e5;
+  border:1px solid #f0c3b8;
+  color: var(--bad);
+  padding: 14px 16px;
+  border-radius: 10px;
+  font-size: 0.88rem;
+  text-align:left;
 }
 .loading-text{
-  font-family: "Helvetica Neue", Arial, sans-serif;
   color: var(--muted);
   font-size: 0.88rem;
   text-align:center;
-  padding: 20px;
+  padding: 24px;
 }
+
+table#history-table{
+  width:100%;
+  border-collapse: collapse;
+  font-size: 0.9rem;
+}
+table#history-table th, table#history-table td{
+  text-align:left;
+  padding: 10px 12px;
+  border-bottom: 1px solid var(--rule);
+}
+table#history-table th{
+  font-weight:700;
+  font-size:0.74rem;
+  text-transform:uppercase;
+  letter-spacing: 0.5px;
+  color: var(--muted);
+}
+table#history-table tr:last-child td{ border-bottom:none; }

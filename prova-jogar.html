@@ -47,14 +47,20 @@ if(!quizId){
 }
 
 async function loadQuiz(id){
-  const quiz = await getQuizById(id);
-  if(!quiz){
-    document.getElementById('quiz-title').textContent = 'Prova não encontrada';
-    return;
+  try{
+    const quiz = await getQuizById(id);
+    if(!quiz){
+      document.getElementById('quiz-title').textContent = 'Prova não encontrada';
+      return;
+    }
+    document.getElementById('quiz-title').textContent = quiz.title;
+    document.getElementById('quiz-subtitle').textContent = quiz.questions.length + ' questões · criada em ' + new Date(quiz.dateCreated).toLocaleDateString('pt-BR');
+    renderForm(quiz);
+  }catch(err){
+    console.error('Erro ao carregar prova:', err);
+    document.getElementById('quiz-title').textContent = 'Não foi possível carregar esta prova';
+    document.getElementById('quiz-subtitle').innerHTML = '<span style="color:var(--bad);">Confira as regras do Firestore e sua internet, depois recarregue a página.</span>';
   }
-  document.getElementById('quiz-title').textContent = quiz.title;
-  document.getElementById('quiz-subtitle').textContent = quiz.questions.length + ' questões · criada em ' + new Date(quiz.dateCreated).toLocaleDateString('pt-BR');
-  renderForm(quiz);
 }
 
 function renderForm(quiz){

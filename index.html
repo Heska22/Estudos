@@ -46,12 +46,15 @@
 </div>
 
 <script type="module">
-import { ensureMyName, getMyName, listenStudyEntries, listenQuizAttempts } from "./firebase-init.js";
+import { ensureMyName, listenStudyEntries, listenQuizAttempts } from "./firebase-init.js";
+import { subjectLabel, subjectColor } from "./subjects.js";
 
 const myName = ensureMyName();
 let currentFilter = 'all';
 let allEntries = [];
 let allAttempts = [];
+let entriesLoaded = false;
+let attemptsLoaded = false;
 
 document.getElementById('tabs').addEventListener('click', (e) => {
   if(e.target.tagName !== 'BUTTON') return;
@@ -61,13 +64,6 @@ document.getElementById('tabs').addEventListener('click', (e) => {
   render();
 });
 
-function subjectLabel(s){
-  const map = {quimica:'Química', genetica:'Genética', historia:'História', outro:'Outro'};
-  return map[s] || 'Outro';
-}
-function subjectClass(s){
-  return ['quimica','genetica','historia'].includes(s) ? s : 'outro';
-}
 function escapeHtml(str){
   const div = document.createElement('div');
   div.textContent = str || '';
@@ -79,7 +75,17 @@ function filterByAuthor(list){
   return list;
 }
 
+function showErrorBox(elId, extra){
+  document.getElementById(elId).innerHTML = `
+    <div class="error-state">
+      Não consegui carregar os dados agora.${extra || ''}<br>
+      Confira se as regras do Firestore foram publicadas (Firebase Console → Firestore Database → Rules) e se sua internet está ok.
+    </div>`;
+}
+
 function render(){
+  if(!entriesLoaded || !attemptsLoaded) return;
+
   const entries = filterByAuthor(allEntries);
   const attempts = filterByAuthor(allAttempts);
 
@@ -102,7 +108,7 @@ function render(){
         ${e.photo ? `<img src="${e.photo}" alt="foto do estudo">` : ''}
         <div class="entry-body">
           <div class="entry-date">${new Date(e.date).toLocaleDateString('pt-BR')} · <span class="author-badge">${escapeHtml(e.author)}</span></div>
-          <span class="subject-tag ${subjectClass(e.subject)}">${subjectLabel(e.subject)}</span>
+          <span class="subject-tag" style="background:${subjectColor(e.subject)}">${escapeHtml(subjectLabel(e.subject, e.customSubject))}</span>
           <p class="entry-notes">${escapeHtml(e.notes)}</p>
         </div>
       </div>
@@ -125,8 +131,14 @@ function render(){
   }
 }
 
-listenStudyEntries((entries) => { allEntries = entries; render(); });
-listenQuizAttempts((attempts) => { allAttempts = attempts; render(); });
+listenStudyEntries(
+  (entries) => { allEntries = entries; entriesLoaded = true; render(); },
+  () => { showErrorBox('recent-entries'); }
+);
+listenQuizAttempts(
+  (attempts) => { allAttempts = attempts; attemptsLoaded = true; render(); },
+  () => { showErrorBox('last-quizzes'); }
+);
 </script>
 
 </body>
