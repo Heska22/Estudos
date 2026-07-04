@@ -5,6 +5,7 @@ import {
   addDoc,
   doc,
   deleteDoc,
+  updateDoc,
   getDoc,
   getDocs,
   query,
@@ -41,6 +42,9 @@ export async function addStudyEntry(entry){
 }
 export async function deleteStudyEntry(id){
   await deleteDoc(doc(db, "studyEntries", id));
+}
+export async function updateStudyEntry(id, data){
+  await updateDoc(doc(db, "studyEntries", id), data);
 }
 export function listenStudyEntries(callback, onError){
   const q = query(collection(db, "studyEntries"), orderBy("date", "desc"));

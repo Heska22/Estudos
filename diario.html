@@ -1,6 +1,7 @@
 <!DOCTYPE html>
 <html lang="pt-BR">
 <head>
+<script>document.documentElement.setAttribute('data-theme', localStorage.getItem('theme') || 'light');</script>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Diário de Estudos</title>
@@ -9,9 +10,12 @@
 <body>
 
 <nav class="topnav">
-  <a href="index.html">Início</a>
-  <a href="diario.html" class="active">Diário de Estudos</a>
-  <a href="provas.html">Provas</a>
+  <div class="nav-links">
+    <a href="index.html">Início</a>
+    <a href="diario.html" class="active">Diário de Estudos</a>
+    <a href="provas.html">Provas</a>
+  </div>
+  <button id="theme-toggle" title="Alternar tema claro/escuro">🌙</button>
 </nav>
 
 <div class="wrap">
@@ -64,6 +68,7 @@
       <div id="photo-preview" style="margin-bottom:16px;"></div>
 
       <button type="submit" class="btn" id="submit-btn">Salvar registro</button>
+      <button type="button" class="btn secondary" id="cancel-edit-btn" style="display:none;">Cancelar edição</button>
     </form>
   </div>
 
@@ -78,11 +83,15 @@
 </div>
 
 <script type="module">
-import { ensureMyName, addStudyEntry, deleteStudyEntry, listenStudyEntries } from "./firebase-init.js";
+import { setupThemeToggle } from "./theme.js";
+setupThemeToggle();
+
+import { ensureMyName, addStudyEntry, updateStudyEntry, deleteStudyEntry, listenStudyEntries } from "./firebase-init.js";
 import { SUBJECTS, subjectLabel, subjectColor } from "./subjects.js";
 
 const myName = ensureMyName();
 document.getElementById('entry-date').valueAsDate = new Date();
+let editingId = null;
 
 // popular selects de matéria
 const subjectSelect = document.getElementById('entry-subject');
@@ -141,31 +150,63 @@ document.getElementById('entry-form').addEventListener('submit', async function(
 
   const btn = document.getElementById('submit-btn');
   btn.disabled = true;
-  btn.textContent = 'Salvando...';
+  btn.textContent = editingId ? 'Salvando alterações...' : 'Salvando...';
+
+  const payload = {
+    date, subject,
+    customSubject: subject === 'outro' ? customSubject : '',
+    notes, minutes, difficulty, tags,
+    photo: pendingPhoto
+  };
 
   try{
-    await addStudyEntry({
-      author: myName,
-      date, subject,
-      customSubject: subject === 'outro' ? customSubject : '',
-      notes, minutes, difficulty, tags,
-      photo: pendingPhoto,
-      createdAt: Date.now()
-    });
-
-    document.getElementById('entry-form').reset();
-    document.getElementById('entry-date').valueAsDate = new Date();
-    document.getElementById('photo-preview').innerHTML = '';
-    document.getElementById('custom-subject-wrap').style.display = 'none';
-    pendingPhoto = null;
+    if(editingId){
+      await updateStudyEntry(editingId, payload);
+    } else {
+      await addStudyEntry({ ...payload, author: myName, createdAt: Date.now() });
+    }
+    resetForm();
   }catch(err){
     console.error(err);
     alert('Não foi possível salvar agora. Verifique sua internet e tente de novo.');
   } finally {
     btn.disabled = false;
-    btn.textContent = 'Salvar registro';
+    btn.textContent = editingId ? 'Salvar alterações' : 'Salvar registro';
   }
 });
+
+function resetForm(){
+  document.getElementById('entry-form').reset();
+  document.getElementById('entry-date').valueAsDate = new Date();
+  document.getElementById('photo-preview').innerHTML = '';
+  document.getElementById('custom-subject-wrap').style.display = 'none';
+  pendingPhoto = null;
+  editingId = null;
+  document.getElementById('submit-btn').textContent = 'Salvar registro';
+  document.getElementById('cancel-edit-btn').style.display = 'none';
+}
+
+document.getElementById('cancel-edit-btn').addEventListener('click', resetForm);
+
+function startEdit(entry){
+  editingId = entry.id;
+  document.getElementById('entry-date').value = entry.date;
+  subjectSelect.value = entry.subject;
+  document.getElementById('custom-subject-wrap').style.display = entry.subject === 'outro' ? 'block' : 'none';
+  document.getElementById('entry-custom-subject').value = entry.customSubject || '';
+  document.getElementById('entry-notes').value = entry.notes || '';
+  document.getElementById('entry-minutes').value = entry.minutes || '';
+  document.getElementById('entry-difficulty').value = entry.difficulty || 'medio';
+  document.getElementById('entry-tags').value = (entry.tags || []).join(', ');
+  pendingPhoto = entry.photo || null;
+  document.getElementById('photo-preview').innerHTML = entry.photo
+    ? `<img src="${entry.photo}" style="max-width:140px; border-radius:10px; border:1px solid var(--rule);">`
+    : '';
+
+  document.getElementById('submit-btn').textContent = 'Salvar alterações';
+  document.getElementById('cancel-edit-btn').style.display = 'inline-block';
+  window.scrollTo({ top: 0, behavior: 'smooth' });
+}
 
 let allEntries = [];
 let knownAuthors = [];
@@ -224,7 +265,12 @@ function renderEntries(){
             </div>
             <p class="entry-notes">${escapeHtml(e.notes)}</p>
             ${e.tags && e.tags.length ? `<div class="meta-row">${e.tags.map(t => `<span class="chip">#${escapeHtml(t)}</span>`).join('')}</div>` : ''}
-            ${e.author === myName ? `<button class="btn danger" data-delete-id="${e.id}">Excluir</button>` : ''}
+            ${e.author === myName ? `
+              <div class="meta-row" style="margin-top:8px;">
+                <button class="btn secondary" style="padding:6px 14px; font-size:0.8rem;" data-edit-id="${e.id}">Editar</button>
+                <button class="btn danger" data-delete-id="${e.id}">Excluir</button>
+              </div>
+            ` : ''}
           </div>
         </div>
       `).join('')}
@@ -233,6 +279,13 @@ function renderEntries(){
 }
 
 document.getElementById('entries-list').addEventListener('click', async (e) => {
+  const editBtn = e.target.closest('[data-edit-id]');
+  if(editBtn){
+    const entry = allEntries.find(x => x.id === editBtn.dataset.editId);
+    if(entry) startEdit(entry);
+    return;
+  }
+
   const btn = e.target.closest('[data-delete-id]');
   if(!btn) return;
   if(!confirm('Excluir este registro? Essa ação não pode ser desfeita.')) return;

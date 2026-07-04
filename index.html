@@ -1,6 +1,7 @@
 <!DOCTYPE html>
 <html lang="pt-BR">
 <head>
+<script>document.documentElement.setAttribute('data-theme', localStorage.getItem('theme') || 'light');</script>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Painel de Estudos</title>
@@ -9,9 +10,12 @@
 <body>
 
 <nav class="topnav">
-  <a href="index.html" class="active">Início</a>
-  <a href="diario.html">Diário de Estudos</a>
-  <a href="provas.html">Provas</a>
+  <div class="nav-links">
+    <a href="index.html" class="active">Início</a>
+    <a href="diario.html">Diário de Estudos</a>
+    <a href="provas.html">Provas</a>
+  </div>
+  <button id="theme-toggle" title="Alternar tema claro/escuro">🌙</button>
 </nav>
 
 <div class="wrap">
@@ -24,7 +28,36 @@
     <button data-filter="all" class="active">Todos</button>
   </div>
 
+  <div class="card">
+    <h3 style="margin-top:0;">Seu progresso pessoal</h3>
+    <div class="xp-card">
+      <div class="xp-level-badge">
+        <span class="level-num" id="level-num">1</span>
+        <span class="level-label">Nível</span>
+      </div>
+      <div style="flex:1;">
+        <div class="xp-bar-track"><div class="xp-bar-fill" id="xp-bar-fill" style="width:0%;"></div></div>
+        <div class="xp-detail" id="xp-detail">Carregando...</div>
+      </div>
+      <div style="text-align:center; flex-shrink:0;">
+        <div style="font-size:1.6rem;" id="streak-emoji">🔥</div>
+        <div style="font-size:1.3rem; font-weight:700;" id="streak-num">0</div>
+        <div style="font-size:0.7rem; color:var(--muted); text-transform:uppercase;">dias seguidos</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="card">
+    <h3 style="margin-top:0;">Conquistas</h3>
+    <div class="badges-grid" id="badges-grid"></div>
+  </div>
+
   <div id="stats-grid" class="stats-grid"></div>
+
+  <div class="card">
+    <h3 style="margin-top:0;">Tempo estudado por matéria</h3>
+    <div id="subject-chart"></div>
+  </div>
 
   <div class="card">
     <h3 style="margin-top:0;">Últimos registros</h3>
@@ -44,8 +77,12 @@
 </div>
 
 <script type="module">
+import { setupThemeToggle } from "./theme.js";
+setupThemeToggle();
+
 import { ensureMyName, listenStudyEntries, listenQuizAttempts } from "./firebase-init.js";
-import { subjectLabel, subjectColor } from "./subjects.js";
+import { subjectLabel, subjectColor, SUBJECTS } from "./subjects.js";
+import { calculateStreak, calculateXP, getLevelProgress, calculateAchievements, calculateSubjectMinutes } from "./gamification.js";
 
 const myName = ensureMyName();
 let currentFilter = 'all';
@@ -103,6 +140,9 @@ function render(){
   if(!entriesLoaded || !attemptsLoaded) return;
   refreshTabs();
 
+  renderPersonalProgress();
+  renderSubjectChart();
+
   const entries = filterByAuthor(allEntries);
   const attempts = filterByAuthor(allAttempts);
 
@@ -146,6 +186,54 @@ function render(){
       </div>
     `).join('');
   }
+}
+
+function renderPersonalProgress(){
+  const streak = calculateStreak(allEntries, myName);
+  const xp = calculateXP(allEntries, allAttempts, myName);
+  const { level, currentLevelXp, nextLevelXp, progressPercent } = getLevelProgress(xp);
+
+  document.getElementById('streak-num').textContent = streak;
+  document.getElementById('streak-emoji').style.opacity = streak > 0 ? '1' : '0.3';
+  document.getElementById('level-num').textContent = level;
+  document.getElementById('xp-bar-fill').style.width = progressPercent + '%';
+  document.getElementById('xp-detail').textContent =
+    `${xp} XP · faltam ${Math.max(nextLevelXp - xp, 0)} XP pro nível ${level + 1}`;
+
+  const achievements = calculateAchievements(allEntries, allAttempts, myName, streak);
+  document.getElementById('badges-grid').innerHTML = achievements.map(a => `
+    <div class="badge-item ${a.unlocked ? 'unlocked' : ''}">
+      <span class="badge-emoji">${a.emoji}</span>
+      <span class="badge-name">${a.name}</span>
+    </div>
+  `).join('');
+}
+
+function renderSubjectChart(){
+  const entries = filterByAuthor(allEntries);
+  const totals = calculateSubjectMinutes(entries);
+  const box = document.getElementById('subject-chart');
+
+  const entriesWithTime = Object.values(totals).some(v => v > 0);
+  if(!entriesWithTime){
+    box.innerHTML = '<p class="empty-state">Registre o tempo estudado no diário pra ver o gráfico aqui.</p>';
+    return;
+  }
+
+  const maxVal = Math.max(...Object.values(totals), 1);
+  const sortedSubjects = SUBJECTS.filter(s => totals[s.id] > 0).sort((a,b) => totals[b.id] - totals[a.id]);
+
+  box.innerHTML = sortedSubjects.map(s => {
+    const val = totals[s.id] || 0;
+    const pct = Math.round((val / maxVal) * 100);
+    return `
+      <div class="subject-bar-row">
+        <div class="subject-bar-label">${s.label}</div>
+        <div class="subject-bar-track"><div class="subject-bar-fill" style="width:${pct}%; background:${s.color};"></div></div>
+        <div class="subject-bar-value">${val} min</div>
+      </div>
+    `;
+  }).join('');
 }
 
 listenStudyEntries(

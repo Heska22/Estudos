@@ -9,16 +9,35 @@
   --bad: #b3492f;
   --muted: #767569;
   --accent: #b3502f;
+  --navbg: #1f2225;
+}
+[data-theme="dark"]{
+  --bg: #1a1917;
+  --paper: #242220;
+  --ink: #f0ede6;
+  --rule: #3a3733;
+  --ok: #5cb894;
+  --bad: #e0755a;
+  --muted: #a19e94;
+  --accent: #e08a5c;
+  --navbg: #0f0e0d;
+}
+[data-theme="dark"] body{
+  background-image: radial-gradient(circle at 15% 0%, #201f1c 0%, var(--bg) 55%);
+}
+[data-theme="dark"] .card, [data-theme="dark"] .stat-box{
+  box-shadow: 0 1px 2px rgba(0,0,0,0.2), 0 8px 24px -12px rgba(0,0,0,0.3);
 }
 *{box-sizing:border-box;}
 body{
   margin:0;
   background: var(--bg);
-  background-image: radial-gradient(circle at 15% 0%, #faf6ec 0%, var(--bg) 55%);
+  background-image: radial-gradient(circle at 15% 0%, var(--paper) 0%, var(--bg) 55%);
   color:var(--ink);
   font-family: "Inter", "Helvetica Neue", Arial, sans-serif;
   line-height:1.55;
   -webkit-font-smoothing: antialiased;
+  transition: background 0.2s ease, color 0.2s ease;
 }
 .wrap{
   max-width: 800px;
@@ -28,9 +47,15 @@ body{
 
 nav.topnav{
   display:flex;
+  align-items:center;
   gap: 6px;
   padding: 16px 20px;
-  background: var(--ink);
+  background: var(--navbg);
+}
+nav.topnav .nav-links{
+  display:flex;
+  gap:6px;
+  flex:1;
 }
 nav.topnav a{
   color: #cfcdc3;
@@ -43,7 +68,7 @@ nav.topnav a{
   transition: background 0.15s ease, color 0.15s ease;
 }
 nav.topnav a.active{
-  background: #fff;
+  background: var(--paper);
   color: var(--ink);
 }
 nav.topnav a:hover:not(.active){ background: rgba(255,255,255,0.12); color:#fff; }
@@ -345,3 +370,125 @@ table#history-table th{
   color: var(--muted);
 }
 table#history-table tr:last-child td{ border-bottom:none; }
+
+#theme-toggle{
+  background: transparent;
+  border: 1.5px solid rgba(255,255,255,0.25);
+  color: #fff;
+  font-size: 1rem;
+  width: 38px;
+  height: 38px;
+  border-radius: 50%;
+  cursor:pointer;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  flex-shrink:0;
+}
+#theme-toggle:hover{ background: rgba(255,255,255,0.1); }
+
+.avatar-bubble{
+  display:inline-flex;
+  align-items:center;
+  justify-content:center;
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  color:#fff;
+  font-size: 0.68rem;
+  font-weight:700;
+  flex-shrink:0;
+}
+
+.xp-card{
+  display:flex;
+  align-items:center;
+  gap: 18px;
+}
+.xp-level-badge{
+  width: 64px;
+  height: 64px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, var(--accent), #d97a48);
+  color:#fff;
+  display:flex;
+  flex-direction:column;
+  align-items:center;
+  justify-content:center;
+  flex-shrink:0;
+  font-family: "Fraunces", serif;
+}
+.xp-level-badge .level-num{ font-size:1.4rem; font-weight:700; line-height:1; }
+.xp-level-badge .level-label{ font-size:0.55rem; text-transform:uppercase; letter-spacing:0.5px; }
+.xp-bar-track{
+  flex:1;
+  height: 12px;
+  background: var(--rule);
+  border-radius: 999px;
+  overflow:hidden;
+}
+.xp-bar-fill{
+  height:100%;
+  background: linear-gradient(90deg, var(--accent), #d97a48);
+  border-radius: 999px;
+  transition: width 0.3s ease;
+}
+.xp-detail{
+  font-size: 0.78rem;
+  color: var(--muted);
+  margin-top: 6px;
+}
+
+.badges-grid{
+  display:grid;
+  grid-template-columns: repeat(auto-fill, minmax(110px, 1fr));
+  gap: 12px;
+}
+.badge-item{
+  text-align:center;
+  padding: 14px 8px;
+  border-radius: 12px;
+  background: var(--bg);
+  border: 1px solid var(--rule);
+  opacity: 0.35;
+  filter: grayscale(1);
+}
+.badge-item.unlocked{
+  opacity:1;
+  filter:none;
+  background: linear-gradient(180deg, var(--paper), var(--bg));
+  border-color: var(--accent);
+}
+.badge-item .badge-emoji{ font-size: 1.7rem; display:block; margin-bottom:6px; }
+.badge-item .badge-name{ font-size: 0.72rem; font-weight:700; }
+
+.subject-bar-row{
+  display:flex;
+  align-items:center;
+  gap: 10px;
+  margin-bottom: 10px;
+}
+.subject-bar-label{
+  width: 110px;
+  font-size: 0.8rem;
+  font-weight:600;
+  flex-shrink:0;
+}
+.subject-bar-track{
+  flex:1;
+  height: 10px;
+  background: var(--bg);
+  border-radius: 999px;
+  overflow:hidden;
+}
+.subject-bar-fill{
+  height:100%;
+  border-radius: 999px;
+}
+.subject-bar-value{
+  width: 60px;
+  text-align:right;
+  font-size: 0.76rem;
+  color: var(--muted);
+  flex-shrink:0;
+}

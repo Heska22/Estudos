@@ -1,6 +1,7 @@
 <!DOCTYPE html>
 <html lang="pt-BR">
 <head>
+<script>document.documentElement.setAttribute('data-theme', localStorage.getItem('theme') || 'light');</script>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Fazer Prova</title>
@@ -9,9 +10,12 @@
 <body>
 
 <nav class="topnav">
-  <a href="index.html">Início</a>
-  <a href="diario.html">Diário de Estudos</a>
-  <a href="provas.html" class="active">Provas</a>
+  <div class="nav-links">
+    <a href="index.html">Início</a>
+    <a href="diario.html">Diário de Estudos</a>
+    <a href="provas.html" class="active">Provas</a>
+  </div>
+  <button id="theme-toggle" title="Alternar tema claro/escuro">🌙</button>
 </nav>
 
 <div class="wrap">
@@ -33,6 +37,9 @@
 </div>
 
 <script type="module">
+import { setupThemeToggle } from "./theme.js";
+setupThemeToggle();
+
 import { ensureMyName, getQuizById, addQuizAttempt } from "./firebase-init.js";
 
 const myName = ensureMyName();
