@@ -1,0 +1,143 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Criar Nova Prova</title>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<nav class="topnav">
+  <a href="index.html">Início</a>
+  <a href="diario.html">Diário de Estudos</a>
+  <a href="provas.html">Provas</a>
+</nav>
+
+<div class="wrap">
+  <header class="page-header">
+    <h1>Criar Nova Prova</h1>
+    <p>Área restrita — só quem sabe a senha consegue publicar</p>
+  </header>
+
+  <div id="gate" class="card">
+    <label class="field-label">Senha de acesso</label>
+    <input type="text" id="passphrase" placeholder="Digite a senha">
+    <button class="btn" id="unlock-btn">Entrar</button>
+  </div>
+
+  <div id="editor" class="card" style="display:none;">
+    <div class="notice">
+      Cole abaixo o JSON da prova (peça pro Claude gerar pra você, no formato certo — é só copiar e colar aqui). Depois clique em pré-visualizar antes de publicar.
+    </div>
+    <label class="field-label">Título da prova</label>
+    <input type="text" id="quiz-title-input" placeholder="Ex: Prova 2 — Fim de semana 11/07">
+
+    <label class="field-label">JSON das questões</label>
+    <textarea id="quiz-json-input" style="min-height:220px; font-family: monospace; font-size:0.82rem;" placeholder='[
+  {
+    "id": "q1",
+    "type": "mc",
+    "stem": "Pergunta aqui?",
+    "options": [
+      {"value":"a","label":"a) Opção 1"},
+      {"value":"b","label":"b) Opção 2"}
+    ],
+    "correct": "b"
+  },
+  {
+    "id": "q2",
+    "type": "vf",
+    "stem": "Verdadeiro ou falso: ...",
+    "options": [
+      {"value":"verdadeiro","label":"Verdadeiro"},
+      {"value":"falso","label":"Falso"}
+    ],
+    "correct": "verdadeiro"
+  },
+  {
+    "id": "q3",
+    "type": "discursive",
+    "stem": "Pergunta discursiva aqui..."
+  }
+]'></textarea>
+
+    <button class="btn secondary" id="preview-btn">Pré-visualizar</button>
+    <button class="btn" id="publish-btn" style="display:none;">Publicar prova</button>
+
+    <div id="preview-box" style="margin-top:16px;"></div>
+  </div>
+</div>
+
+<script type="module">
+import { ADMIN_PASSPHRASE } from "./firebase-config.js";
+import { addQuiz } from "./firebase-init.js";
+
+document.getElementById('unlock-btn').addEventListener('click', () => {
+  const val = document.getElementById('passphrase').value;
+  if(val === ADMIN_PASSPHRASE){
+    document.getElementById('gate').style.display = 'none';
+    document.getElementById('editor').style.display = 'block';
+  } else {
+    alert('Senha incorreta.');
+  }
+});
+
+let parsedQuestions = null;
+
+document.getElementById('preview-btn').addEventListener('click', () => {
+  const raw = document.getElementById('quiz-json-input').value.trim();
+  const previewBox = document.getElementById('preview-box');
+  try{
+    parsedQuestions = JSON.parse(raw);
+    if(!Array.isArray(parsedQuestions)) throw new Error('O JSON precisa ser uma lista de questões.');
+
+    previewBox.innerHTML = '<h4>Pré-visualização (' + parsedQuestions.length + ' questões)</h4>' +
+      parsedQuestions.map((q, i) => `
+        <div style="padding:10px 0; border-bottom:1px solid var(--rule); font-family:'Helvetica Neue',Arial,sans-serif;">
+          <strong>Q${i+1} (${q.type}):</strong> ${escapeHtml(q.stem)}
+          ${q.options ? '<ul>' + q.options.map(o => `<li>${escapeHtml(o.label)}</li>`).join('') + '</ul>' : ''}
+        </div>
+      `).join('');
+
+    document.getElementById('publish-btn').style.display = 'inline-block';
+  }catch(err){
+    previewBox.innerHTML = '<p style="color:var(--bad); font-family:\'Helvetica Neue\',Arial,sans-serif;">JSON inválido: ' + err.message + '</p>';
+    document.getElementById('publish-btn').style.display = 'none';
+  }
+});
+
+document.getElementById('publish-btn').addEventListener('click', async () => {
+  const title = document.getElementById('quiz-title-input').value.trim();
+  if(!title){ alert('Dê um título pra prova.'); return; }
+  if(!parsedQuestions){ alert('Pré-visualize antes de publicar.'); return; }
+
+  const btn = document.getElementById('publish-btn');
+  btn.disabled = true;
+  btn.textContent = 'Publicando...';
+
+  try{
+    await addQuiz({
+      title: title,
+      dateCreated: new Date().toISOString(),
+      questions: parsedQuestions
+    });
+    alert('Prova publicada! Já vai aparecer na aba Provas.');
+    window.location.href = 'provas.html';
+  }catch(err){
+    console.error(err);
+    alert('Erro ao publicar. Confira sua internet e tente de novo.');
+    btn.disabled = false;
+    btn.textContent = 'Publicar prova';
+  }
+});
+
+function escapeHtml(str){
+  const div = document.createElement('div');
+  div.textContent = str || '';
+  return div.innerHTML;
+}
+</script>
+
+</body>
+</html>

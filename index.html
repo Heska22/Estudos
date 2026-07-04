@@ -11,45 +11,56 @@
 <nav class="topnav">
   <a href="index.html" class="active">Início</a>
   <a href="diario.html">Diário de Estudos</a>
-  <a href="prova.html">Provas</a>
+  <a href="provas.html">Provas</a>
 </nav>
 
 <div class="wrap">
   <header class="page-header">
     <h1>Painel de Estudos</h1>
-    <p>Seu progresso pessoal — salvo neste navegador</p>
+    <p>Seu progresso e o do seu amigo, atualizados em tempo real</p>
   </header>
 
-  <div class="stats-grid" id="stats-grid">
-    <!-- preenchido via JS -->
+  <div class="tabs" id="tabs">
+    <button data-filter="all" class="active">Todos</button>
+    <button data-filter="me">Só eu</button>
+    <button data-filter="other">Só ele(a)</button>
   </div>
+
+  <div id="stats-grid" class="stats-grid"></div>
 
   <div class="card">
     <h3 style="margin-top:0;">Últimos registros</h3>
-    <div id="recent-entries"></div>
+    <div id="recent-entries" class="loading-text">Carregando...</div>
     <div style="margin-top:14px;">
       <a href="diario.html" class="btn">+ Novo registro de estudo</a>
     </div>
   </div>
 
   <div class="card">
-    <h3 style="margin-top:0;">Última prova feita</h3>
-    <div id="last-quiz"></div>
+    <h3 style="margin-top:0;">Últimas provas feitas</h3>
+    <div id="last-quizzes" class="loading-text">Carregando...</div>
     <div style="margin-top:14px;">
-      <a href="prova.html" class="btn secondary">Fazer uma prova</a>
+      <a href="provas.html" class="btn secondary">Ver provas</a>
     </div>
   </div>
 </div>
 
-<script>
-function getEntries(){
-  try{ return JSON.parse(localStorage.getItem('studyLog') || '[]'); }
-  catch(e){ return []; }
-}
-function getQuizAttempts(){
-  try{ return JSON.parse(localStorage.getItem('quizAttempts') || '[]'); }
-  catch(e){ return []; }
-}
+<script type="module">
+import { ensureMyName, getMyName, listenStudyEntries, listenQuizAttempts } from "./firebase-init.js";
+
+const myName = ensureMyName();
+let currentFilter = 'all';
+let allEntries = [];
+let allAttempts = [];
+
+document.getElementById('tabs').addEventListener('click', (e) => {
+  if(e.target.tagName !== 'BUTTON') return;
+  document.querySelectorAll('#tabs button').forEach(b => b.classList.remove('active'));
+  e.target.classList.add('active');
+  currentFilter = e.target.dataset.filter;
+  render();
+});
+
 function subjectLabel(s){
   const map = {quimica:'Química', genetica:'Genética', historia:'História', outro:'Outro'};
   return map[s] || 'Outro';
@@ -57,59 +68,65 @@ function subjectLabel(s){
 function subjectClass(s){
   return ['quimica','genetica','historia'].includes(s) ? s : 'outro';
 }
-
-const entries = getEntries().sort((a,b) => new Date(b.date) - new Date(a.date));
-const attempts = getQuizAttempts().sort((a,b) => new Date(b.date) - new Date(a.date));
-
-// stats
-const counts = {quimica:0, genetica:0, historia:0, outro:0};
-entries.forEach(e => { counts[subjectClass(e.subject)]++; });
-
-const oneWeekAgo = new Date();
-oneWeekAgo.setDate(oneWeekAgo.getDate() - 7);
-const thisWeek = entries.filter(e => new Date(e.date) >= oneWeekAgo).length;
-
-document.getElementById('stats-grid').innerHTML = `
-  <div class="stat-box"><span class="num">${entries.length}</span><span class="label">Registros totais</span></div>
-  <div class="stat-box"><span class="num">${thisWeek}</span><span class="label">Nos últimos 7 dias</span></div>
-  <div class="stat-box"><span class="num">${attempts.length}</span><span class="label">Provas feitas</span></div>
-`;
-
-// recent entries
-const recentBox = document.getElementById('recent-entries');
-if(entries.length === 0){
-  recentBox.innerHTML = '<p class="empty-state">Você ainda não registrou nenhum estudo. Que tal começar agora?</p>';
-} else {
-  recentBox.innerHTML = entries.slice(0,3).map(e => `
-    <div class="entry" style="margin-bottom:14px; padding-bottom:14px; border-bottom:1px solid var(--rule);">
-      ${e.photo ? `<img src="${e.photo}" alt="foto do estudo">` : ''}
-      <div class="entry-body">
-        <div class="entry-date">${new Date(e.date).toLocaleDateString('pt-BR')}</div>
-        <span class="subject-tag ${subjectClass(e.subject)}">${subjectLabel(e.subject)}</span>
-        <p class="entry-notes">${escapeHtml(e.notes || '')}</p>
-      </div>
-    </div>
-  `).join('');
-}
-
-// last quiz
-const lastQuizBox = document.getElementById('last-quiz');
-if(attempts.length === 0){
-  lastQuizBox.innerHTML = '<p class="empty-state">Nenhuma prova feita ainda.</p>';
-} else {
-  const last = attempts[0];
-  lastQuizBox.innerHTML = `
-    <p style="font-family:'Helvetica Neue',Arial,sans-serif; margin:0;">
-      <strong>${last.correct} / ${last.total}</strong> (${last.percent}%) — ${new Date(last.date).toLocaleDateString('pt-BR')} às ${new Date(last.date).toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'})}
-    </p>
-  `;
-}
-
 function escapeHtml(str){
   const div = document.createElement('div');
-  div.textContent = str;
+  div.textContent = str || '';
   return div.innerHTML;
 }
+function filterByAuthor(list){
+  if(currentFilter === 'me') return list.filter(x => x.author === myName);
+  if(currentFilter === 'other') return list.filter(x => x.author !== myName);
+  return list;
+}
+
+function render(){
+  const entries = filterByAuthor(allEntries);
+  const attempts = filterByAuthor(allAttempts);
+
+  const oneWeekAgo = new Date();
+  oneWeekAgo.setDate(oneWeekAgo.getDate() - 7);
+  const thisWeek = entries.filter(e => new Date(e.date) >= oneWeekAgo).length;
+
+  document.getElementById('stats-grid').innerHTML = `
+    <div class="stat-box"><span class="num">${entries.length}</span><span class="label">Registros de estudo</span></div>
+    <div class="stat-box"><span class="num">${thisWeek}</span><span class="label">Nos últimos 7 dias</span></div>
+    <div class="stat-box"><span class="num">${attempts.length}</span><span class="label">Provas feitas</span></div>
+  `;
+
+  const recentBox = document.getElementById('recent-entries');
+  if(entries.length === 0){
+    recentBox.innerHTML = '<p class="empty-state">Nenhum registro por aqui ainda.</p>';
+  } else {
+    recentBox.innerHTML = entries.slice(0,4).map(e => `
+      <div class="entry" style="margin-bottom:14px; padding-bottom:14px; border-bottom:1px solid var(--rule);">
+        ${e.photo ? `<img src="${e.photo}" alt="foto do estudo">` : ''}
+        <div class="entry-body">
+          <div class="entry-date">${new Date(e.date).toLocaleDateString('pt-BR')} · <span class="author-badge">${escapeHtml(e.author)}</span></div>
+          <span class="subject-tag ${subjectClass(e.subject)}">${subjectLabel(e.subject)}</span>
+          <p class="entry-notes">${escapeHtml(e.notes)}</p>
+        </div>
+      </div>
+    `).join('');
+  }
+
+  const lastQuizzesBox = document.getElementById('last-quizzes');
+  if(attempts.length === 0){
+    lastQuizzesBox.innerHTML = '<p class="empty-state">Nenhuma prova feita ainda.</p>';
+  } else {
+    lastQuizzesBox.innerHTML = attempts.slice(0,5).map(a => `
+      <div class="quiz-list-item">
+        <div>
+          <p class="quiz-title" style="font-size:0.95rem;">${escapeHtml(a.quizTitle || 'Prova')}</p>
+          <div class="quiz-meta"><span class="author-badge">${escapeHtml(a.author)}</span> · ${new Date(a.date).toLocaleDateString('pt-BR')}</div>
+        </div>
+        <strong>${a.correct}/${a.total} (${a.percent}%)</strong>
+      </div>
+    `).join('');
+  }
+}
+
+listenStudyEntries((entries) => { allEntries = entries; render(); });
+listenQuizAttempts((attempts) => { allAttempts = attempts; render(); });
 </script>
 
 </body>

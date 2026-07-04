@@ -1,0 +1,106 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Provas</title>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<nav class="topnav">
+  <a href="index.html">Início</a>
+  <a href="diario.html">Diário de Estudos</a>
+  <a href="provas.html" class="active">Provas</a>
+</nav>
+
+<div class="wrap">
+  <header class="page-header">
+    <h1>Provas</h1>
+    <p>Novas provas aparecem aqui automaticamente quando forem criadas</p>
+  </header>
+
+  <div class="card">
+    <div id="quiz-list" class="loading-text">Carregando provas...</div>
+  </div>
+
+  <div class="card">
+    <h3 style="margin-top:0;">Placar geral</h3>
+    <div id="leaderboard" class="loading-text">Carregando...</div>
+  </div>
+
+  <p style="text-align:center;">
+    <a href="nova-prova.html" class="btn secondary" style="font-size:0.8rem;">+ Criar nova prova (acesso restrito)</a>
+  </p>
+</div>
+
+<script type="module">
+import { ensureMyName, listenQuizzes, listenQuizAttempts } from "./firebase-init.js";
+
+const myName = ensureMyName();
+let allAttempts = [];
+
+function escapeHtml(str){
+  const div = document.createElement('div');
+  div.textContent = str || '';
+  return div.innerHTML;
+}
+
+function attemptsFor(quizId){
+  return allAttempts.filter(a => a.quizId === quizId);
+}
+
+function renderQuizzes(quizzes){
+  const box = document.getElementById('quiz-list');
+  if(quizzes.length === 0){
+    box.innerHTML = '<p class="empty-state">Nenhuma prova criada ainda.</p>';
+    return;
+  }
+  box.innerHTML = quizzes.map(q => {
+    const attempts = attemptsFor(q.id);
+    const mine = attempts.filter(a => a.author === myName);
+    const lastMine = mine.sort((a,b) => new Date(b.date) - new Date(a.date))[0];
+    return `
+      <div class="quiz-list-item">
+        <div>
+          <p class="quiz-title">${escapeHtml(q.title)}</p>
+          <div class="quiz-meta">${new Date(q.dateCreated).toLocaleDateString('pt-BR')} · ${q.questions.length} questões
+            ${lastMine ? ` · sua última nota: <strong>${lastMine.correct}/${lastMine.total}</strong>` : ' · você ainda não fez'}
+          </div>
+        </div>
+        <a class="btn" href="prova-jogar.html?id=${q.id}">${lastMine ? 'Refazer' : 'Fazer'}</a>
+      </div>
+    `;
+  }).join('');
+}
+
+function renderLeaderboard(){
+  const box = document.getElementById('leaderboard');
+  if(allAttempts.length === 0){
+    box.innerHTML = '<p class="empty-state">Ninguém fez nenhuma prova ainda.</p>';
+    return;
+  }
+  const byAuthor = {};
+  allAttempts.forEach(a => {
+    if(!byAuthor[a.author]) byAuthor[a.author] = { attempts: 0, totalPercent: 0 };
+    byAuthor[a.author].attempts++;
+    byAuthor[a.author].totalPercent += a.percent;
+  });
+  const rows = Object.entries(byAuthor).map(([author, d]) => ({
+    author, attempts: d.attempts, avg: Math.round(d.totalPercent / d.attempts)
+  })).sort((a,b) => b.avg - a.avg);
+
+  box.innerHTML = `
+    <table id="history-table"><thead><tr><th>Nome</th><th>Provas feitas</th><th>Média</th></tr></thead><tbody>
+      ${rows.map(r => `<tr><td>${escapeHtml(r.author)}${r.author===myName ? ' (você)' : ''}</td><td>${r.attempts}</td><td>${r.avg}%</td></tr>`).join('')}
+    </tbody></table>
+  `;
+}
+
+let latestQuizzes = [];
+listenQuizzes((quizzes) => { latestQuizzes = quizzes; renderQuizzes(quizzes); });
+listenQuizAttempts((attempts) => { allAttempts = attempts; renderQuizzes(latestQuizzes); renderLeaderboard(); });
+</script>
+
+</body>
+</html>

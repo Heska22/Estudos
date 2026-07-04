@@ -1,0 +1,167 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Fazer Prova</title>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<nav class="topnav">
+  <a href="index.html">Início</a>
+  <a href="diario.html">Diário de Estudos</a>
+  <a href="provas.html" class="active">Provas</a>
+</nav>
+
+<div class="wrap">
+  <header class="page-header" id="quiz-header">
+    <h1 id="quiz-title">Carregando prova...</h1>
+    <p id="quiz-subtitle"></p>
+  </header>
+
+  <div class="notice">As respostas corretas só aparecem depois de clicar em <strong>Enviar prova</strong>.</div>
+
+  <form id="quiz-form"></form>
+
+  <div id="result-panel" class="card" style="display:none; text-align:center; border:2px solid var(--ink);">
+    <h2>Prova enviada!</h2>
+    <div class="score" style="font-size:2.2rem; font-weight:700;" id="score-display"></div>
+    <p id="score-detail" style="font-family:'Helvetica Neue',Arial,sans-serif; color:var(--muted);"></p>
+    <a href="provas.html" class="btn secondary" style="margin-top:10px;">Voltar para provas</a>
+  </div>
+</div>
+
+<script type="module">
+import { ensureMyName, getQuizById, addQuizAttempt } from "./firebase-init.js";
+
+const myName = ensureMyName();
+const params = new URLSearchParams(window.location.search);
+const quizId = params.get('id');
+
+if(!quizId){
+  document.getElementById('quiz-title').textContent = 'Prova não encontrada';
+  document.getElementById('quiz-subtitle').textContent = 'Volte para a lista de provas e escolha uma.';
+} else {
+  loadQuiz(quizId);
+}
+
+async function loadQuiz(id){
+  const quiz = await getQuizById(id);
+  if(!quiz){
+    document.getElementById('quiz-title').textContent = 'Prova não encontrada';
+    return;
+  }
+  document.getElementById('quiz-title').textContent = quiz.title;
+  document.getElementById('quiz-subtitle').textContent = quiz.questions.length + ' questões · criada em ' + new Date(quiz.dateCreated).toLocaleDateString('pt-BR');
+  renderForm(quiz);
+}
+
+function renderForm(quiz){
+  const form = document.getElementById('quiz-form');
+  form.innerHTML = quiz.questions.map((q, idx) => {
+    if(q.type === 'discursive'){
+      return `
+        <div class="card" data-qid="${q.id}" data-type="discursive">
+          <span class="entry-date">Questão ${idx+1} · Discursiva</span>
+          <p style="font-size:1.02rem;">${escapeHtml(q.stem)}</p>
+          <textarea name="${q.id}" placeholder="Escreva sua resposta aqui..."></textarea>
+          <div class="feedback-box"></div>
+        </div>
+      `;
+    }
+    return `
+      <div class="card" data-qid="${q.id}" data-type="${q.type}" data-correct="${q.correct}">
+        <span class="entry-date">Questão ${idx+1}</span>
+        <p style="font-size:1.02rem;">${escapeHtml(q.stem)}</p>
+        <div class="options">
+          ${q.options.map(opt => `
+            <label style="display:flex; gap:10px; align-items:flex-start; padding:8px 10px; font-family:'Helvetica Neue',Arial,sans-serif; font-size:0.95rem; cursor:pointer;">
+              <input type="radio" name="${q.id}" value="${opt.value}"> ${escapeHtml(opt.label)}
+            </label>
+          `).join('')}
+        </div>
+        <div class="feedback-box"></div>
+      </div>
+    `;
+  }).join('') + `
+    <div id="submit-bar" style="position:sticky; bottom:0; background:var(--bg); padding:16px 0; border-top:1px solid var(--rule); margin-top:20px;">
+      <button type="submit" class="btn" style="width:100%;" id="submit-btn">Enviar prova</button>
+    </div>
+  `;
+
+  form.addEventListener('submit', (e) => onSubmit(e, quiz));
+}
+
+function escapeHtml(str){
+  const div = document.createElement('div');
+  div.textContent = str || '';
+  return div.innerHTML;
+}
+
+async function onSubmit(e, quiz){
+  e.preventDefault();
+  const cards = document.querySelectorAll('#quiz-form .card');
+  let correctCount = 0, objectiveTotal = 0, unanswered = 0;
+
+  cards.forEach(card => {
+    const type = card.dataset.type;
+    const qid = card.dataset.qid;
+    const fb = card.querySelector('.feedback-box');
+
+    if(type === 'discursive'){
+      const val = card.querySelector('textarea').value.trim();
+      if(!val){ unanswered++; fb.textContent = 'Você não respondeu.'; }
+      else { fb.textContent = 'Resposta registrada (avaliação livre entre vocês).'; }
+      return;
+    }
+
+    objectiveTotal++;
+    const selected = card.querySelector('input[name="'+qid+'"]:checked');
+    if(!selected){
+      unanswered++;
+      fb.innerHTML = '<span style="color:var(--muted); font-family:\'Helvetica Neue\',Arial,sans-serif; font-size:0.85rem;">Você não respondeu.</span>';
+      return;
+    }
+    const correct = card.dataset.correct;
+    if(selected.value === correct){
+      correctCount++;
+      fb.innerHTML = '<span style="color:var(--ok); font-family:\'Helvetica Neue\',Arial,sans-serif; font-size:0.85rem;">✔ Correto!</span>';
+    } else {
+      const correctLabel = card.querySelector('input[value="'+correct+'"]').closest('label').textContent.trim();
+      fb.innerHTML = '<span style="color:var(--bad); font-family:\'Helvetica Neue\',Arial,sans-serif; font-size:0.85rem;">✘ Errado. Resposta certa: '+escapeHtml(correctLabel)+'</span>';
+    }
+  });
+
+  if(unanswered > 0){
+    const proceed = confirm('Você deixou ' + unanswered + ' questão(ões) sem resposta. Enviar mesmo assim?');
+    if(!proceed) return;
+  }
+
+  document.getElementById('submit-btn').disabled = true;
+  document.getElementById('submit-btn').textContent = 'Enviado';
+
+  const percent = Math.round((correctCount / objectiveTotal) * 100);
+  document.getElementById('score-display').textContent = correctCount + ' / ' + objectiveTotal;
+  document.getElementById('score-detail').textContent = myName + ', você acertou ' + percent + '% das questões objetivas.';
+  document.getElementById('result-panel').style.display = 'block';
+  document.getElementById('result-panel').scrollIntoView({behavior:'smooth'});
+
+  try{
+    await addQuizAttempt({
+      author: myName,
+      quizId: quiz.id,
+      quizTitle: quiz.title,
+      correct: correctCount,
+      total: objectiveTotal,
+      percent: percent,
+      date: new Date().toISOString()
+    });
+  }catch(err){
+    console.error('Não foi possível salvar a tentativa', err);
+  }
+}
+</script>
+
+</body>
+</html>

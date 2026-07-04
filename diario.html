@@ -11,75 +11,97 @@
 <nav class="topnav">
   <a href="index.html">Início</a>
   <a href="diario.html" class="active">Diário de Estudos</a>
-  <a href="prova.html">Provas</a>
+  <a href="provas.html">Provas</a>
 </nav>
 
 <div class="wrap">
   <header class="page-header">
     <h1>Diário de Estudos</h1>
-    <p>Registre o que você estudou hoje — texto e foto ficam salvos neste navegador</p>
+    <p>Pode registrar quantas vezes quiser no mesmo dia — cada estudo vira um card separado</p>
   </header>
 
   <div class="card">
     <form id="entry-form">
-      <label class="field-label">Data</label>
-      <input type="date" id="entry-date" required>
+      <div class="two-col">
+        <div>
+          <label class="field-label">Data</label>
+          <input type="date" id="entry-date" required>
+        </div>
+        <div>
+          <label class="field-label">Assunto</label>
+          <select id="entry-subject">
+            <option value="quimica">Química — Tabela Periódica</option>
+            <option value="genetica">Genética</option>
+            <option value="historia">História — Revolução Industrial</option>
+            <option value="outro">Outro</option>
+          </select>
+        </div>
+      </div>
 
-      <label class="field-label">Assunto</label>
-      <select id="entry-subject">
-        <option value="quimica">Química — Tabela Periódica</option>
-        <option value="genetica">Genética</option>
-        <option value="historia">História — Revolução Industrial</option>
-        <option value="outro">Outro</option>
-      </select>
+      <label class="field-label">O que você estudou? (seja específico: o que leu, o que praticou, o que ainda não entendeu)</label>
+      <textarea id="entry-notes" placeholder="Ex: Revisei os 20 primeiros elementos, treinei os símbolos de memória e fiz 10 flashcards dos halogênios e gases nobres. Ainda tenho dúvida em metais de transição." required></textarea>
 
-      <label class="field-label">O que você estudou?</label>
-      <textarea id="entry-notes" placeholder="Ex: Revisei os 20 primeiros elementos e fiz resumo dos grupos da tabela periódica..." required></textarea>
+      <div class="two-col">
+        <div>
+          <label class="field-label">Tempo estudado (minutos)</label>
+          <input type="text" id="entry-minutes" placeholder="Ex: 45">
+        </div>
+        <div>
+          <label class="field-label">Como achou a dificuldade?</label>
+          <select id="entry-difficulty">
+            <option value="facil">Fácil</option>
+            <option value="medio" selected>Médio</option>
+            <option value="dificil">Difícil</option>
+          </select>
+        </div>
+      </div>
+
+      <label class="field-label">Tags (separadas por vírgula, opcional)</label>
+      <input type="text" id="entry-tags" placeholder="Ex: flashcards, revisão, halogênios">
 
       <label class="field-label">Foto (opcional — print, foto do caderno, etc.)</label>
       <input type="file" id="entry-photo" accept="image/*">
       <div id="photo-preview" style="margin-bottom:16px;"></div>
 
-      <button type="submit" class="btn">Salvar registro</button>
+      <button type="submit" class="btn" id="submit-btn">Salvar registro</button>
     </form>
   </div>
 
   <div class="card">
-    <h3 style="margin-top:0;">Seus registros</h3>
-    <div style="margin-bottom:14px;">
-      <select id="filter-subject" style="margin-bottom:0;">
+    <h3 style="margin-top:0;">Registros</h3>
+    <div class="two-col" style="margin-bottom:16px;">
+      <select id="filter-subject">
         <option value="all">Todos os assuntos</option>
         <option value="quimica">Química</option>
         <option value="genetica">Genética</option>
         <option value="historia">História</option>
         <option value="outro">Outro</option>
       </select>
+      <select id="filter-author">
+        <option value="all">Eu e meu amigo</option>
+        <option value="me">Só eu</option>
+        <option value="other">Só ele(a)</option>
+      </select>
     </div>
-    <div id="entries-list"></div>
+    <div id="entries-list" class="loading-text">Carregando...</div>
   </div>
 </div>
 
-<script>
-const STORAGE_KEY = 'studyLog';
+<script type="module">
+import { ensureMyName, addStudyEntry, listenStudyEntries } from "./firebase-init.js";
 
-function getEntries(){
-  try{ return JSON.parse(localStorage.getItem(STORAGE_KEY) || '[]'); }
-  catch(e){ return []; }
-}
-function saveEntries(entries){
-  localStorage.setItem(STORAGE_KEY, JSON.stringify(entries));
-}
+const myName = ensureMyName();
+document.getElementById('entry-date').valueAsDate = new Date();
+
 function subjectLabel(s){
   const map = {quimica:'Química', genetica:'Genética', historia:'História', outro:'Outro'};
   return map[s] || 'Outro';
 }
 function escapeHtml(str){
   const div = document.createElement('div');
-  div.textContent = str;
+  div.textContent = str || '';
   return div.innerHTML;
 }
-
-document.getElementById('entry-date').valueAsDate = new Date();
 
 let pendingPhoto = null;
 document.getElementById('entry-photo').addEventListener('change', function(e){
@@ -87,8 +109,8 @@ document.getElementById('entry-photo').addEventListener('change', function(e){
   const preview = document.getElementById('photo-preview');
   if(!file){ pendingPhoto = null; preview.innerHTML = ''; return; }
 
-  if(file.size > 3 * 1024 * 1024){
-    alert('Essa imagem é grande demais (limite de ~3MB). Tente uma foto menor ou comprimida.');
+  if(file.size > 900 * 1024){
+    alert('Essa imagem é grande demais para o banco de dados (limite de ~900KB). Tente uma foto menor ou comprimida.');
     e.target.value = '';
     pendingPhoto = null;
     preview.innerHTML = '';
@@ -103,80 +125,97 @@ document.getElementById('entry-photo').addEventListener('change', function(e){
   reader.readAsDataURL(file);
 });
 
-document.getElementById('entry-form').addEventListener('submit', function(e){
+document.getElementById('entry-form').addEventListener('submit', async function(e){
   e.preventDefault();
 
   const date = document.getElementById('entry-date').value;
   const subject = document.getElementById('entry-subject').value;
   const notes = document.getElementById('entry-notes').value.trim();
+  const minutes = document.getElementById('entry-minutes').value.trim();
+  const difficulty = document.getElementById('entry-difficulty').value;
+  const tagsRaw = document.getElementById('entry-tags').value.trim();
+  const tags = tagsRaw ? tagsRaw.split(',').map(t => t.trim()).filter(Boolean) : [];
 
   if(!notes){
     alert('Escreva um pouco sobre o que você estudou.');
     return;
   }
 
-  const entries = getEntries();
-  entries.push({
-    id: Date.now(),
-    date: date,
-    subject: subject,
-    notes: notes,
-    photo: pendingPhoto
-  });
+  const btn = document.getElementById('submit-btn');
+  btn.disabled = true;
+  btn.textContent = 'Salvando...';
 
   try{
-    saveEntries(entries);
+    await addStudyEntry({
+      author: myName,
+      date, subject, notes, minutes, difficulty, tags,
+      photo: pendingPhoto,
+      createdAt: Date.now()
+    });
+
+    document.getElementById('entry-form').reset();
+    document.getElementById('entry-date').valueAsDate = new Date();
+    document.getElementById('photo-preview').innerHTML = '';
+    pendingPhoto = null;
   }catch(err){
-    alert('Não foi possível salvar (o navegador pode estar sem espaço de armazenamento). Tente uma foto menor ou remova registros antigos.');
-    return;
+    console.error(err);
+    alert('Não foi possível salvar agora. Verifique sua internet e tente de novo.');
+  } finally {
+    btn.disabled = false;
+    btn.textContent = 'Salvar registro';
   }
-
-  document.getElementById('entry-form').reset();
-  document.getElementById('entry-date').valueAsDate = new Date();
-  document.getElementById('photo-preview').innerHTML = '';
-  pendingPhoto = null;
-
-  renderEntries();
 });
 
+let allEntries = [];
 document.getElementById('filter-subject').addEventListener('change', renderEntries);
+document.getElementById('filter-author').addEventListener('change', renderEntries);
 
 function renderEntries(){
-  const filter = document.getElementById('filter-subject').value;
-  let entries = getEntries().sort((a,b) => new Date(b.date) - new Date(a.date));
+  const subjectFilter = document.getElementById('filter-subject').value;
+  const authorFilter = document.getElementById('filter-author').value;
 
-  if(filter !== 'all'){
-    entries = entries.filter(e => e.subject === filter);
-  }
+  let entries = [...allEntries];
+  if(subjectFilter !== 'all') entries = entries.filter(e => e.subject === subjectFilter);
+  if(authorFilter === 'me') entries = entries.filter(e => e.author === myName);
+  if(authorFilter === 'other') entries = entries.filter(e => e.author !== myName);
 
   const list = document.getElementById('entries-list');
-
   if(entries.length === 0){
     list.innerHTML = '<p class="empty-state">Nenhum registro por aqui ainda.</p>';
     return;
   }
 
-  list.innerHTML = entries.map(e => `
-    <div class="entry" style="margin-bottom:16px; padding-bottom:16px; border-bottom:1px solid var(--rule);" data-id="${e.id}">
-      ${e.photo ? `<img src="${e.photo}" alt="foto do estudo">` : ''}
-      <div class="entry-body">
-        <div class="entry-date">${new Date(e.date).toLocaleDateString('pt-BR')}</div>
-        <span class="subject-tag ${e.subject}">${subjectLabel(e.subject)}</span>
-        <p class="entry-notes">${escapeHtml(e.notes)}</p>
-        <button class="btn danger" onclick="deleteEntry(${e.id})">Excluir</button>
-      </div>
+  // agrupar por data
+  const groups = {};
+  entries.forEach(e => {
+    if(!groups[e.date]) groups[e.date] = [];
+    groups[e.date].push(e);
+  });
+  const sortedDates = Object.keys(groups).sort((a,b) => new Date(b) - new Date(a));
+
+  list.innerHTML = sortedDates.map(date => `
+    <div class="day-group">
+      <div class="day-label">${new Date(date).toLocaleDateString('pt-BR', {weekday:'long', day:'2-digit', month:'2-digit'})}</div>
+      ${groups[date].map(e => `
+        <div class="entry" style="margin-bottom:14px; padding-bottom:14px; border-bottom:1px solid var(--rule);">
+          ${e.photo ? `<img src="${e.photo}" alt="foto do estudo">` : ''}
+          <div class="entry-body">
+            <div class="meta-row">
+              <span class="subject-tag ${e.subject}">${subjectLabel(e.subject)}</span>
+              <span class="author-badge">${escapeHtml(e.author)}</span>
+              ${e.minutes ? `<span class="chip">${escapeHtml(e.minutes)} min</span>` : ''}
+              ${e.difficulty ? `<span class="chip ${e.difficulty}">${e.difficulty === 'facil' ? 'Fácil' : e.difficulty === 'dificil' ? 'Difícil' : 'Médio'}</span>` : ''}
+            </div>
+            <p class="entry-notes">${escapeHtml(e.notes)}</p>
+            ${e.tags && e.tags.length ? `<div class="meta-row">${e.tags.map(t => `<span class="chip">#${escapeHtml(t)}</span>`).join('')}</div>` : ''}
+          </div>
+        </div>
+      `).join('')}
     </div>
   `).join('');
 }
 
-function deleteEntry(id){
-  if(!confirm('Excluir este registro?')) return;
-  const entries = getEntries().filter(e => e.id !== id);
-  saveEntries(entries);
-  renderEntries();
-}
-
-renderEntries();
+listenStudyEntries((entries) => { allEntries = entries; renderEntries(); });
 </script>
 
 </body>

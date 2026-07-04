@@ -188,3 +188,116 @@ textarea{ min-height: 90px; resize:vertical; }
   text-align:center;
   padding: 30px 10px;
 }
+
+.tabs{
+  display:flex;
+  gap:6px;
+  margin-bottom: 18px;
+  font-family: "Helvetica Neue", Arial, sans-serif;
+}
+.tabs button{
+  flex:1;
+  padding: 10px 12px;
+  border: 1px solid var(--rule);
+  background: var(--paper);
+  border-radius: 6px;
+  font-size: 0.85rem;
+  cursor:pointer;
+  color: var(--ink);
+}
+.tabs button.active{
+  background: var(--ink);
+  color:#fff;
+  border-color: var(--ink);
+}
+
+.day-group{
+  margin-bottom: 22px;
+}
+.day-group .day-label{
+  font-family: "Helvetica Neue", Arial, sans-serif;
+  font-size: 0.78rem;
+  font-weight:700;
+  color: var(--muted);
+  text-transform:uppercase;
+  letter-spacing: 0.5px;
+  margin-bottom: 8px;
+  padding-bottom: 6px;
+  border-bottom: 1px solid var(--rule);
+}
+
+.meta-row{
+  display:flex;
+  gap:8px;
+  flex-wrap:wrap;
+  align-items:center;
+  margin: 6px 0;
+  font-family: "Helvetica Neue", Arial, sans-serif;
+  font-size: 0.78rem;
+}
+.chip{
+  padding: 3px 10px;
+  border-radius: 20px;
+  background: #efece3;
+  color: var(--muted);
+  font-weight:600;
+}
+.chip.dificil{ background:#fbe2db; color:var(--bad); }
+.chip.medio{ background:#fff2d6; color:#8a6412; }
+.chip.facil{ background:#e6f2ee; color:var(--ok); }
+.author-badge{
+  font-family: "Helvetica Neue", Arial, sans-serif;
+  font-size: 0.72rem;
+  font-weight:700;
+  padding: 2px 9px;
+  border-radius: 20px;
+  background: var(--ink);
+  color:#fff;
+}
+
+.two-col{
+  display:grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+}
+@media (max-width: 560px){
+  .two-col{ grid-template-columns: 1fr; }
+}
+
+.quiz-list-item{
+  display:flex;
+  justify-content:space-between;
+  align-items:center;
+  padding: 14px 0;
+  border-bottom: 1px solid var(--rule);
+  font-family: "Helvetica Neue", Arial, sans-serif;
+}
+.quiz-list-item:last-child{ border-bottom:none; }
+.quiz-list-item .quiz-title{
+  font-family: "Georgia", serif;
+  font-size: 1.05rem;
+  color: var(--ink);
+  margin: 0 0 4px;
+}
+.quiz-list-item .quiz-meta{
+  font-size: 0.78rem;
+  color: var(--muted);
+}
+
+.notice{
+  font-family: "Helvetica Neue", Arial, sans-serif;
+  background:#fff6e0;
+  border:1px solid #eadfb3;
+  color:#7a5b12;
+  padding: 10px 14px;
+  border-radius: 6px;
+  font-size: 0.85rem;
+  margin-bottom: 20px;
+}
+.loading-text{
+  font-family: "Helvetica Neue", Arial, sans-serif;
+  color: var(--muted);
+  font-size: 0.88rem;
+  text-align:center;
+  padding: 20px;
+}
