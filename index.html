@@ -14,6 +14,8 @@
     <a href="index.html" class="active">Início</a>
     <a href="diario.html">Diário de Estudos</a>
     <a href="provas.html">Provas</a>
+    <a href="revisao.html">Revisão</a>
+    <a href="mural.html">Mural</a>
   </div>
   <button id="theme-toggle" title="Alternar tema claro/escuro">🌙</button>
 </nav>
@@ -52,6 +54,11 @@
     <div class="badges-grid" id="badges-grid"></div>
   </div>
 
+  <div class="card">
+    <h3 style="margin-top:0;">Sugestões de revisão</h3>
+    <div id="review-suggestions"></div>
+  </div>
+
   <div id="stats-grid" class="stats-grid"></div>
 
   <div class="card">
@@ -82,7 +89,7 @@ setupThemeToggle();
 
 import { ensureMyName, listenStudyEntries, listenQuizAttempts } from "./firebase-init.js";
 import { subjectLabel, subjectColor, SUBJECTS } from "./subjects.js";
-import { calculateStreak, calculateXP, getLevelProgress, calculateAchievements, calculateSubjectMinutes } from "./gamification.js";
+import { calculateStreak, calculateXP, getLevelProgress, calculateAchievements, calculateSubjectMinutes, getAvatarColor, getInitial } from "./gamification.js";
 
 const myName = ensureMyName();
 let currentFilter = 'all';
@@ -142,6 +149,7 @@ function render(){
 
   renderPersonalProgress();
   renderSubjectChart();
+  renderReviewSuggestions();
 
   const entries = filterByAuthor(allEntries);
   const attempts = filterByAuthor(allAttempts);
@@ -164,7 +172,7 @@ function render(){
       <div class="entry" style="margin-bottom:14px; padding-bottom:14px; border-bottom:1px solid var(--rule);">
         ${e.photo ? `<img src="${e.photo}" alt="foto do estudo">` : ''}
         <div class="entry-body">
-          <div class="entry-date">${new Date(e.date).toLocaleDateString('pt-BR')} · <span class="author-badge">${escapeHtml(e.author)}</span></div>
+          <div class="entry-date">${new Date(e.date).toLocaleDateString('pt-BR')} · <span class="author-badge" style="background:${getAvatarColor(e.author)};"><span class="avatar-bubble" style="width:16px;height:16px;font-size:0.6rem;background:rgba(255,255,255,0.3);">${getInitial(e.author)}</span> ${escapeHtml(e.author)}</span></div>
           <span class="subject-tag" style="background:${subjectColor(e.subject)}">${escapeHtml(subjectLabel(e.subject, e.customSubject))}</span>
           <p class="entry-notes">${escapeHtml(e.notes)}</p>
         </div>
@@ -180,7 +188,7 @@ function render(){
       <div class="quiz-list-item">
         <div>
           <p class="quiz-title" style="font-size:0.95rem;">${escapeHtml(a.quizTitle || 'Prova')}</p>
-          <div class="quiz-meta"><span class="author-badge">${escapeHtml(a.author)}</span> · ${new Date(a.date).toLocaleDateString('pt-BR')}</div>
+          <div class="quiz-meta"><span class="author-badge" style="background:${getAvatarColor(a.author)};">${escapeHtml(a.author)}</span> · ${new Date(a.date).toLocaleDateString('pt-BR')}</div>
         </div>
         <strong>${a.correct}/${a.total} (${a.percent}%)</strong>
       </div>
@@ -234,6 +242,40 @@ function renderSubjectChart(){
       </div>
     `;
   }).join('');
+}
+
+function renderReviewSuggestions(){
+  const myEntries = allEntries.filter(e => e.author === myName);
+  const box = document.getElementById('review-suggestions');
+
+  if(myEntries.length === 0){
+    box.innerHTML = '<p class="empty-state">Registre alguns estudos pra receber sugestões aqui.</p>';
+    return;
+  }
+
+  const lastStudied = {};
+  myEntries.forEach(e => {
+    const d = new Date(e.date);
+    if(!lastStudied[e.subject] || d > lastStudied[e.subject]) lastStudied[e.subject] = d;
+  });
+
+  const today = new Date(); today.setHours(0,0,0,0);
+  const suggestions = Object.entries(lastStudied).map(([subject, lastDate]) => {
+    const diffDays = Math.floor((today - lastDate) / (1000*60*60*24));
+    return { subject, diffDays };
+  }).filter(s => s.diffDays >= 3).sort((a,b) => b.diffDays - a.diffDays);
+
+  if(suggestions.length === 0){
+    box.innerHTML = '<p class="empty-state">Tudo em dia! Nenhuma matéria precisa de revisão agora. 🎉</p>';
+    return;
+  }
+
+  box.innerHTML = suggestions.map(s => `
+    <div class="meta-row" style="margin-bottom:10px;">
+      <span class="subject-tag" style="background:${subjectColor(s.subject)}">${escapeHtml(subjectLabel(s.subject))}</span>
+      <span style="font-size:0.85rem; color:var(--muted);">Faz ${s.diffDays} dias que você não revisa essa matéria</span>
+    </div>
+  `).join('');
 }
 
 listenStudyEntries(

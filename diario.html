@@ -14,6 +14,8 @@
     <a href="index.html">Início</a>
     <a href="diario.html" class="active">Diário de Estudos</a>
     <a href="provas.html">Provas</a>
+    <a href="revisao.html">Revisão</a>
+    <a href="mural.html">Mural</a>
   </div>
   <button id="theme-toggle" title="Alternar tema claro/escuro">🌙</button>
 </nav>
@@ -88,6 +90,7 @@ setupThemeToggle();
 
 import { ensureMyName, addStudyEntry, updateStudyEntry, deleteStudyEntry, listenStudyEntries } from "./firebase-init.js";
 import { SUBJECTS, subjectLabel, subjectColor } from "./subjects.js";
+import { getAvatarColor } from "./gamification.js";
 
 const myName = ensureMyName();
 document.getElementById('entry-date').valueAsDate = new Date();
@@ -259,7 +262,7 @@ function renderEntries(){
           <div class="entry-body">
             <div class="meta-row">
               <span class="subject-tag" style="background:${subjectColor(e.subject)}">${escapeHtml(subjectLabel(e.subject, e.customSubject))}</span>
-              <span class="author-badge">${escapeHtml(e.author)}</span>
+              <span class="author-badge" style="background:${getAvatarColor(e.author)};">${escapeHtml(e.author)}</span>
               ${e.minutes ? `<span class="chip">${escapeHtml(e.minutes)} min</span>` : ''}
               ${e.difficulty ? `<span class="chip ${e.difficulty}">${e.difficulty === 'facil' ? 'Fácil' : e.difficulty === 'dificil' ? 'Difícil' : 'Médio'}</span>` : ''}
             </div>

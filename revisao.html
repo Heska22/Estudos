@@ -1,0 +1,131 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<script>document.documentElement.setAttribute('data-theme', localStorage.getItem('theme') || 'light');</script>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Revisão — Questões Erradas</title>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<nav class="topnav">
+  <div class="nav-links">
+    <a href="index.html">Início</a>
+    <a href="diario.html">Diário de Estudos</a>
+    <a href="provas.html">Provas</a>
+    <a href="revisao.html" class="active">Revisão</a>
+    <a href="mural.html">Mural</a>
+  </div>
+  <button id="theme-toggle" title="Alternar tema claro/escuro">🌙</button>
+</nav>
+
+<div class="wrap">
+  <header class="page-header">
+    <h1>Revisão</h1>
+    <p>Questões que você errou em provas anteriores — acerte de novo pra tirar da lista</p>
+  </header>
+
+  <div id="wrong-list" class="loading-text">Carregando...</div>
+</div>
+
+<script type="module">
+import { setupThemeToggle } from "./theme.js";
+setupThemeToggle();
+
+import { ensureMyName, listenWrongQuestions, removeWrongQuestion } from "./firebase-init.js";
+import { SUBJECTS, subjectLabel, subjectColor } from "./subjects.js";
+
+const myName = ensureMyName();
+
+function escapeHtml(str){
+  const div = document.createElement('div');
+  div.textContent = str || '';
+  return div.innerHTML;
+}
+
+let myWrongItems = [];
+
+function render(){
+  const box = document.getElementById('wrong-list');
+  if(myWrongItems.length === 0){
+    box.innerHTML = '<div class="card"><p class="empty-state">Nenhuma questão pendente de revisão. Mande bem nas próximas provas! 🎉</p></div>';
+    return;
+  }
+
+  const bySubject = {};
+  myWrongItems.forEach(item => {
+    const s = item.subject || 'geral';
+    if(!bySubject[s]) bySubject[s] = [];
+    bySubject[s].push(item);
+  });
+
+  const subjectOrder = Object.keys(bySubject).sort((a,b) => bySubject[b].length - bySubject[a].length);
+
+  box.innerHTML = subjectOrder.map(subject => `
+    <div class="card">
+      <h3 style="margin-top:0;">
+        <span class="subject-tag" style="background:${subjectColor(subject)};">${escapeHtml(subjectLabel(subject))}</span>
+        <span style="font-size:0.8rem; color:var(--muted); font-weight:400;"> · ${bySubject[subject].length} questão(ões)</span>
+      </h3>
+      ${bySubject[subject].map(item => `
+        <div class="review-question" data-item-id="${item.id}" data-correct="${escapeHtml(item.correct)}" style="padding:14px 0; border-bottom:1px solid var(--rule);">
+          <p style="font-size:0.98rem; margin:0 0 10px;">${escapeHtml(item.stem)}</p>
+          <div class="options">
+            ${(item.options || []).map(opt => `
+              <label style="display:flex; gap:10px; align-items:flex-start; padding:6px 10px; font-size:0.9rem; cursor:pointer;">
+                <input type="radio" name="review-${item.id}" value="${escapeHtml(opt.value)}"> ${escapeHtml(opt.label)}
+              </label>
+            `).join('')}
+          </div>
+          <button class="btn secondary" style="margin-top:8px; padding:8px 16px; font-size:0.85rem;" data-check-id="${item.id}">Verificar</button>
+          <div class="feedback-box" style="margin-top:8px;"></div>
+        </div>
+      `).join('')}
+    </div>
+  `).join('');
+}
+
+document.getElementById('wrong-list').addEventListener('click', async (e) => {
+  const btn = e.target.closest('[data-check-id]');
+  if(!btn) return;
+
+  const wrapper = btn.closest('.review-question');
+  const itemId = wrapper.dataset.itemId;
+  const correct = wrapper.dataset.correct;
+  const fb = wrapper.querySelector('.feedback-box');
+  const selected = wrapper.querySelector('input[name="review-'+itemId+'"]:checked');
+
+  if(!selected){
+    fb.innerHTML = '<span style="color:var(--muted); font-size:0.85rem;">Escolha uma resposta antes de verificar.</span>';
+    return;
+  }
+
+  const item = myWrongItems.find(i => i.id === itemId);
+  if(selected.value === correct){
+    fb.innerHTML = '<span style="color:var(--ok); font-size:0.85rem;">✔ Correto! Removendo da revisão...</span>';
+    btn.disabled = true;
+    try{
+      await removeWrongQuestion(myName, item.sourceQuizId, item.questionId);
+    }catch(err){
+      console.error(err);
+    }
+  } else {
+    fb.innerHTML = '<span style="color:var(--bad); font-size:0.85rem;">✘ Ainda não é essa. Continue tentando!</span>';
+  }
+});
+
+listenWrongQuestions(
+  (items) => {
+    myWrongItems = items.filter(i => i.author === myName);
+    render();
+  },
+  () => {
+    document.getElementById('wrong-list').innerHTML = `
+      <div class="error-state">Não consegui carregar suas questões erradas. Confira as regras do Firestore e sua internet.</div>`;
+  }
+);
+</script>
+
+</body>
+</html>

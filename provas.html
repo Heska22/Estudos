@@ -14,6 +14,8 @@
     <a href="index.html">Início</a>
     <a href="diario.html">Diário de Estudos</a>
     <a href="provas.html" class="active">Provas</a>
+    <a href="revisao.html">Revisão</a>
+    <a href="mural.html">Mural</a>
   </div>
   <button id="theme-toggle" title="Alternar tema claro/escuro">🌙</button>
 </nav>
@@ -24,8 +26,29 @@
     <p>Novas provas aparecem aqui automaticamente quando forem criadas</p>
   </header>
 
+  <div class="card" style="display:flex; gap:14px; flex-wrap:wrap; align-items:center; justify-content:space-between;">
+    <div>
+      <p class="quiz-title" style="margin:0 0 4px;">🎲 Prova Aleatória</p>
+      <div class="quiz-meta">Mistura questões de todas as provas já criadas</div>
+    </div>
+    <a href="prova-jogar.html?random=1&n=15" class="btn">Sortear 15 questões</a>
+  </div>
+
+  <div class="card" style="display:flex; gap:14px; flex-wrap:wrap; align-items:center; justify-content:space-between;">
+    <div>
+      <p class="quiz-title" style="margin:0 0 4px;">📌 Banco de Questões Erradas</p>
+      <div class="quiz-meta" id="wrong-count-label">Carregando...</div>
+    </div>
+    <a href="revisao.html" class="btn secondary">Revisar</a>
+  </div>
+
   <div class="card">
     <div id="quiz-list" class="loading-text">Carregando provas...</div>
+  </div>
+
+  <div class="card">
+    <h3 style="margin-top:0;">Sua precisão por matéria</h3>
+    <div id="subject-accuracy"></div>
   </div>
 
   <div class="card">
@@ -42,7 +65,8 @@
 import { setupThemeToggle } from "./theme.js";
 setupThemeToggle();
 
-import { ensureMyName, listenQuizzes, listenQuizAttempts } from "./firebase-init.js";
+import { ensureMyName, listenQuizzes, listenQuizAttempts, listenWrongQuestions } from "./firebase-init.js";
+import { SUBJECTS, subjectLabel } from "./subjects.js";
 
 const myName = ensureMyName();
 let allAttempts = [];
@@ -108,6 +132,55 @@ function renderLeaderboard(){
   `;
 }
 
+function renderSubjectAccuracy(){
+  if(!attemptsLoaded) return;
+  const box = document.getElementById('subject-accuracy');
+  const myAttempts = allAttempts.filter(a => a.author === myName && Array.isArray(a.answers));
+
+  if(myAttempts.length === 0){
+    box.innerHTML = '<p class="empty-state">Faça provas com o campo de matéria preenchido pra ver sua precisão aqui.</p>';
+    return;
+  }
+
+  const bySubject = {};
+  myAttempts.forEach(a => {
+    a.answers.forEach(ans => {
+      if(!bySubject[ans.subject]) bySubject[ans.subject] = { right: 0, total: 0 };
+      bySubject[ans.subject].total++;
+      if(ans.correct) bySubject[ans.subject].right++;
+    });
+  });
+
+  const rows = Object.entries(bySubject)
+    .map(([subject, d]) => ({ subject, pct: Math.round((d.right / d.total) * 100), total: d.total }))
+    .sort((a,b) => b.pct - a.pct);
+
+  if(rows.length === 0){
+    box.innerHTML = '<p class="empty-state">Faça provas com o campo de matéria preenchido pra ver sua precisão aqui.</p>';
+    return;
+  }
+
+  box.innerHTML = rows.map(r => `
+    <div class="subject-bar-row">
+      <div class="subject-bar-label">${escapeHtml(subjectLabel(r.subject))}</div>
+      <div class="subject-bar-track"><div class="subject-bar-fill" style="width:${r.pct}%; background:${r.pct >= 70 ? 'var(--ok)' : r.pct >= 40 ? '#d6a13a' : 'var(--bad)'};"></div></div>
+      <div class="subject-bar-value">${r.pct}% (${r.total})</div>
+    </div>
+  `).join('');
+}
+
+function renderWrongCount(count){
+  const label = document.getElementById('wrong-count-label');
+  label.textContent = count === 0
+    ? 'Você não tem nenhuma questão pendente de revisão. 🎉'
+    : `Você tem ${count} questão${count > 1 ? 'ões' : ''} errada${count > 1 ? 's' : ''} esperando revisão`;
+}
+
+listenWrongQuestions(
+  (items) => { renderWrongCount(items.filter(i => i.author === myName).length); },
+  () => { document.getElementById('wrong-count-label').textContent = 'Não foi possível carregar.'; }
+);
+
 listenQuizzes(
   (quizzes) => { latestQuizzes = quizzes; quizzesLoaded = true; renderQuizzes(); },
   () => {
@@ -116,7 +189,7 @@ listenQuizzes(
   }
 );
 listenQuizAttempts(
-  (attempts) => { allAttempts = attempts; attemptsLoaded = true; renderQuizzes(); renderLeaderboard(); },
+  (attempts) => { allAttempts = attempts; attemptsLoaded = true; renderQuizzes(); renderLeaderboard(); renderSubjectAccuracy(); },
   () => {
     document.getElementById('leaderboard').innerHTML = `
       <div class="error-state">Não consegui carregar o placar. Confira as regras do Firestore e sua internet.</div>`;

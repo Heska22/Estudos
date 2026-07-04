@@ -14,6 +14,8 @@
     <a href="index.html">Início</a>
     <a href="diario.html">Diário de Estudos</a>
     <a href="provas.html">Provas</a>
+    <a href="revisao.html">Revisão</a>
+    <a href="mural.html">Mural</a>
   </div>
   <button id="theme-toggle" title="Alternar tema claro/escuro">🌙</button>
 </nav>
@@ -32,7 +34,7 @@
 
   <div id="editor" class="card" style="display:none;">
     <div class="notice">
-      Cole abaixo o JSON da prova (peça pro Claude gerar pra você, no formato certo — é só copiar e colar aqui). Depois clique em pré-visualizar antes de publicar.
+      Cole abaixo o JSON da prova (peça pro Claude gerar pra você, no formato certo — é só copiar e colar aqui). Cada questão deve ter um campo <code>"subject"</code> (use os mesmos ids do diário: quimica, biologia, genetica, fisica, matematica, historia, geografia, filosofia, sociologia, portugues, ingles, ou "geral" se não se aplicar) — isso alimenta as estatísticas por matéria. Depois clique em pré-visualizar antes de publicar.
     </div>
     <label class="field-label">Título da prova</label>
     <input type="text" id="quiz-title-input" placeholder="Ex: Prova 2 — Fim de semana 11/07">
@@ -42,6 +44,7 @@
   {
     "id": "q1",
     "type": "mc",
+    "subject": "quimica",
     "stem": "Pergunta aqui?",
     "options": [
       {"value":"a","label":"a) Opção 1"},
@@ -52,6 +55,7 @@
   {
     "id": "q2",
     "type": "vf",
+    "subject": "historia",
     "stem": "Verdadeiro ou falso: ...",
     "options": [
       {"value":"verdadeiro","label":"Verdadeiro"},
@@ -62,6 +66,7 @@
   {
     "id": "q3",
     "type": "discursive",
+    "subject": "geral",
     "stem": "Pergunta discursiva aqui..."
   }
 ]'></textarea>

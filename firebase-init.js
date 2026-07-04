@@ -4,6 +4,7 @@ import {
   collection,
   addDoc,
   doc,
+  setDoc,
   deleteDoc,
   updateDoc,
   getDoc,
@@ -78,6 +79,12 @@ export async function getQuizById(id){
   const snap = await getDoc(ref);
   return snap.exists() ? { id: snap.id, ...snap.data() } : null;
 }
+export async function getAllQuizzesOnce(){
+  const snap = await getDocs(collection(db, "quizzes"));
+  const quizzes = [];
+  snap.forEach(d => quizzes.push({ id: d.id, ...d.data() }));
+  return quizzes;
+}
 
 // ---------- Tentativas de prova ----------
 export async function addQuizAttempt(attempt){
@@ -91,6 +98,49 @@ export function listenQuizAttempts(callback, onError){
     callback(attempts);
   }, (err) => {
     console.error('Erro ao carregar quizAttempts:', err);
+    if(onError) onError(err);
+  });
+}
+
+// ---------- Banco de questões erradas ----------
+function sanitizeIdPart(str){
+  return (str || '').toString().replace(/[^a-zA-Z0-9_-]/g, '_');
+}
+export function wrongQuestionId(author, sourceQuizId, questionId){
+  return `${sanitizeIdPart(author)}__${sanitizeIdPart(sourceQuizId)}__${sanitizeIdPart(questionId)}`;
+}
+export async function upsertWrongQuestion(data){
+  const id = wrongQuestionId(data.author, data.sourceQuizId, data.questionId);
+  await setDoc(doc(db, "wrongQuestions", id), data);
+}
+export async function removeWrongQuestion(author, sourceQuizId, questionId){
+  const id = wrongQuestionId(author, sourceQuizId, questionId);
+  await deleteDoc(doc(db, "wrongQuestions", id));
+}
+export function listenWrongQuestions(callback, onError){
+  const q = query(collection(db, "wrongQuestions"), orderBy("date", "desc"));
+  return onSnapshot(q, (snap) => {
+    const items = [];
+    snap.forEach(d => items.push({ id: d.id, ...d.data() }));
+    callback(items);
+  }, (err) => {
+    console.error('Erro ao carregar wrongQuestions:', err);
+    if(onError) onError(err);
+  });
+}
+
+// ---------- Mural de recados ----------
+export async function addMessage(msg){
+  await addDoc(collection(db, "messages"), msg);
+}
+export function listenMessages(callback, onError){
+  const q = query(collection(db, "messages"), orderBy("date", "desc"));
+  return onSnapshot(q, (snap) => {
+    const items = [];
+    snap.forEach(d => items.push({ id: d.id, ...d.data() }));
+    callback(items);
+  }, (err) => {
+    console.error('Erro ao carregar messages:', err);
     if(onError) onError(err);
   });
 }

@@ -56,15 +56,17 @@ nav.topnav .nav-links{
   display:flex;
   gap:6px;
   flex:1;
+  flex-wrap: wrap;
 }
 nav.topnav a{
   color: #cfcdc3;
   text-decoration:none;
-  font-size: 0.85rem;
+  font-size: 0.82rem;
   font-weight:600;
-  padding: 9px 16px;
+  padding: 8px 13px;
   border-radius: 999px;
   letter-spacing: 0.2px;
+  white-space: nowrap;
   transition: background 0.15s ease, color 0.15s ease;
 }
 nav.topnav a.active{

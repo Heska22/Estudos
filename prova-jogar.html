@@ -14,6 +14,8 @@
     <a href="index.html">Início</a>
     <a href="diario.html">Diário de Estudos</a>
     <a href="provas.html" class="active">Provas</a>
+    <a href="revisao.html">Revisão</a>
+    <a href="mural.html">Mural</a>
   </div>
   <button id="theme-toggle" title="Alternar tema claro/escuro">🌙</button>
 </nav>
@@ -40,13 +42,18 @@
 import { setupThemeToggle } from "./theme.js";
 setupThemeToggle();
 
-import { ensureMyName, getQuizById, addQuizAttempt } from "./firebase-init.js";
+import { ensureMyName, getQuizById, getAllQuizzesOnce, addQuizAttempt, upsertWrongQuestion, removeWrongQuestion } from "./firebase-init.js";
+import { subjectLabel } from "./subjects.js";
 
 const myName = ensureMyName();
 const params = new URLSearchParams(window.location.search);
 const quizId = params.get('id');
+const isRandom = params.get('random') === '1';
+const randomCount = parseInt(params.get('n')) || 15;
 
-if(!quizId){
+if(isRandom){
+  loadRandomQuiz();
+} else if(!quizId){
   document.getElementById('quiz-title').textContent = 'Prova não encontrada';
   document.getElementById('quiz-subtitle').textContent = 'Volte para a lista de provas e escolha uma.';
 } else {
@@ -60,12 +67,56 @@ async function loadQuiz(id){
       document.getElementById('quiz-title').textContent = 'Prova não encontrada';
       return;
     }
+    // marca a origem de cada questão (pra banco de erradas funcionar igual no modo normal e aleatório)
+    quiz.questions = quiz.questions.map(q => ({ ...q, sourceQuizId: quiz.id, sourceQuizTitle: quiz.title, subject: q.subject || 'geral' }));
     document.getElementById('quiz-title').textContent = quiz.title;
     document.getElementById('quiz-subtitle').textContent = quiz.questions.length + ' questões · criada em ' + new Date(quiz.dateCreated).toLocaleDateString('pt-BR');
     renderForm(quiz);
   }catch(err){
     console.error('Erro ao carregar prova:', err);
     document.getElementById('quiz-title').textContent = 'Não foi possível carregar esta prova';
+    document.getElementById('quiz-subtitle').innerHTML = '<span style="color:var(--bad);">Confira as regras do Firestore e sua internet, depois recarregue a página.</span>';
+  }
+}
+
+async function loadRandomQuiz(){
+  try{
+    const allQuizzes = await getAllQuizzesOnce();
+    let pool = [];
+    allQuizzes.forEach(q => {
+      (q.questions || []).forEach(question => {
+        if(question.type !== 'discursive'){
+          pool.push({ ...question, sourceQuizId: q.id, sourceQuizTitle: q.title, subject: question.subject || 'geral' });
+        }
+      });
+    });
+
+    if(pool.length === 0){
+      document.getElementById('quiz-title').textContent = 'Ainda não há questões suficientes';
+      document.getElementById('quiz-subtitle').textContent = 'Crie ao menos uma prova primeiro.';
+      return;
+    }
+
+    // embaralhar (Fisher-Yates)
+    for(let i = pool.length - 1; i > 0; i--){
+      const j = Math.floor(Math.random() * (i + 1));
+      [pool[i], pool[j]] = [pool[j], pool[i]];
+    }
+    const selected = pool.slice(0, Math.min(randomCount, pool.length));
+
+    const quiz = {
+      id: 'random-' + Date.now(),
+      title: '🎲 Prova Aleatória',
+      dateCreated: new Date().toISOString(),
+      questions: selected
+    };
+
+    document.getElementById('quiz-title').textContent = quiz.title;
+    document.getElementById('quiz-subtitle').textContent = quiz.questions.length + ' questões sorteadas de todas as provas já criadas';
+    renderForm(quiz);
+  }catch(err){
+    console.error('Erro ao montar prova aleatória:', err);
+    document.getElementById('quiz-title').textContent = 'Não foi possível montar a prova aleatória';
     document.getElementById('quiz-subtitle').innerHTML = '<span style="color:var(--bad);">Confira as regras do Firestore e sua internet, depois recarregue a página.</span>';
   }
 }
@@ -84,8 +135,8 @@ function renderForm(quiz){
       `;
     }
     return `
-      <div class="card" data-qid="${q.id}" data-type="${q.type}" data-correct="${q.correct}">
-        <span class="entry-date">Questão ${idx+1}</span>
+      <div class="card" data-qid="${q.id}" data-type="${q.type}" data-correct="${q.correct}" data-subject="${q.subject}" data-source-quiz-id="${q.sourceQuizId}" data-source-quiz-title="${escapeHtml(q.sourceQuizTitle)}">
+        <span class="entry-date">Questão ${idx+1} · ${subjectLabel(q.subject)}</span>
         <p style="font-size:1.02rem;">${escapeHtml(q.stem)}</p>
         <div class="options">
           ${q.options.map(opt => `
@@ -116,6 +167,9 @@ async function onSubmit(e, quiz){
   e.preventDefault();
   const cards = document.querySelectorAll('#quiz-form .card');
   let correctCount = 0, objectiveTotal = 0, unanswered = 0;
+  const answers = [];
+  const wrongOps = [];
+  const rightOps = [];
 
   cards.forEach(card => {
     const type = card.dataset.type;
@@ -130,19 +184,41 @@ async function onSubmit(e, quiz){
     }
 
     objectiveTotal++;
+    const subject = card.dataset.subject;
+    const sourceQuizId = card.dataset.sourceQuizId;
+    const sourceQuizTitle = card.dataset.sourceQuizTitle;
     const selected = card.querySelector('input[name="'+qid+'"]:checked');
+
     if(!selected){
       unanswered++;
       fb.innerHTML = '<span style="color:var(--muted); font-family:\'Helvetica Neue\',Arial,sans-serif; font-size:0.85rem;">Você não respondeu.</span>';
+      answers.push({ questionId: qid, subject, correct: false });
       return;
     }
+
     const correct = card.dataset.correct;
-    if(selected.value === correct){
+    const isCorrect = selected.value === correct;
+    answers.push({ questionId: qid, subject, correct: isCorrect });
+
+    if(isCorrect){
       correctCount++;
       fb.innerHTML = '<span style="color:var(--ok); font-family:\'Helvetica Neue\',Arial,sans-serif; font-size:0.85rem;">✔ Correto!</span>';
+      rightOps.push({ sourceQuizId, questionId: qid });
     } else {
       const correctLabel = card.querySelector('input[value="'+correct+'"]').closest('label').textContent.trim();
       fb.innerHTML = '<span style="color:var(--bad); font-family:\'Helvetica Neue\',Arial,sans-serif; font-size:0.85rem;">✘ Errado. Resposta certa: '+escapeHtml(correctLabel)+'</span>';
+      const questionObj = quiz.questions.find(q => q.id === qid);
+      wrongOps.push({
+        author: myName,
+        sourceQuizId,
+        sourceQuizTitle,
+        questionId: qid,
+        subject,
+        stem: questionObj ? questionObj.stem : '',
+        options: questionObj ? questionObj.options : [],
+        correct: correct,
+        date: new Date().toISOString()
+      });
     }
   });
 
@@ -168,10 +244,19 @@ async function onSubmit(e, quiz){
       correct: correctCount,
       total: objectiveTotal,
       percent: percent,
+      answers: answers,
       date: new Date().toISOString()
     });
   }catch(err){
     console.error('Não foi possível salvar a tentativa', err);
+  }
+
+  // atualizar banco de questões erradas (adiciona as novas erradas, remove as que acertou)
+  try{
+    await Promise.all(wrongOps.map(w => upsertWrongQuestion(w)));
+    await Promise.all(rightOps.map(r => removeWrongQuestion(myName, r.sourceQuizId, r.questionId)));
+  }catch(err){
+    console.error('Não foi possível atualizar o banco de questões erradas', err);
   }
 }
 </script>

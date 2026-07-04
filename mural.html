@@ -1,0 +1,171 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<script>document.documentElement.setAttribute('data-theme', localStorage.getItem('theme') || 'light');</script>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Mural</title>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<nav class="topnav">
+  <div class="nav-links">
+    <a href="index.html">Início</a>
+    <a href="diario.html">Diário de Estudos</a>
+    <a href="provas.html">Provas</a>
+    <a href="revisao.html">Revisão</a>
+    <a href="mural.html" class="active">Mural</a>
+  </div>
+  <button id="theme-toggle" title="Alternar tema claro/escuro">🌙</button>
+</nav>
+
+<div class="wrap">
+  <header class="page-header">
+    <h1>Mural</h1>
+    <p>Recados entre vocês e o placar da semana</p>
+  </header>
+
+  <div class="card">
+    <h3 style="margin-top:0;">Placar da semana</h3>
+    <div id="weekly-scoreboard" class="loading-text">Carregando...</div>
+  </div>
+
+  <div class="card">
+    <form id="message-form">
+      <textarea id="message-text" placeholder="Deixe um recado, zoeira ou combinado pro fim de semana..." style="min-height:70px;" required></textarea>
+      <button type="submit" class="btn" id="send-btn">Enviar recado</button>
+    </form>
+  </div>
+
+  <div id="messages-list" class="loading-text">Carregando recados...</div>
+</div>
+
+<script type="module">
+import { setupThemeToggle } from "./theme.js";
+setupThemeToggle();
+
+import { ensureMyName, addMessage, listenMessages, listenStudyEntries, listenQuizAttempts } from "./firebase-init.js";
+import { getAvatarColor, getInitial } from "./gamification.js";
+
+const myName = ensureMyName();
+
+function escapeHtml(str){
+  const div = document.createElement('div');
+  div.textContent = str || '';
+  return div.innerHTML;
+}
+
+function timeAgo(dateStr){
+  const diffMs = Date.now() - new Date(dateStr).getTime();
+  const mins = Math.floor(diffMs / 60000);
+  if(mins < 1) return 'agora mesmo';
+  if(mins < 60) return `há ${mins} min`;
+  const hours = Math.floor(mins / 60);
+  if(hours < 24) return `há ${hours}h`;
+  const days = Math.floor(hours / 24);
+  return `há ${days}d`;
+}
+
+document.getElementById('message-form').addEventListener('submit', async (e) => {
+  e.preventDefault();
+  const text = document.getElementById('message-text').value.trim();
+  if(!text) return;
+
+  const btn = document.getElementById('send-btn');
+  btn.disabled = true;
+  btn.textContent = 'Enviando...';
+
+  try{
+    await addMessage({ author: myName, text, date: new Date().toISOString() });
+    document.getElementById('message-form').reset();
+  }catch(err){
+    console.error(err);
+    alert('Não foi possível enviar. Tente de novo.');
+  } finally {
+    btn.disabled = false;
+    btn.textContent = 'Enviar recado';
+  }
+});
+
+listenMessages(
+  (messages) => {
+    const box = document.getElementById('messages-list');
+    if(messages.length === 0){
+      box.innerHTML = '<p class="empty-state">Nenhum recado ainda. Manda o primeiro!</p>';
+      return;
+    }
+    box.innerHTML = messages.map(m => `
+      <div class="card" style="display:flex; gap:12px; align-items:flex-start; padding:14px 18px;">
+        <div class="avatar-bubble" style="background:${getAvatarColor(m.author)}; width:32px; height:32px; font-size:0.85rem;">${getInitial(m.author)}</div>
+        <div style="flex:1;">
+          <div style="font-size:0.8rem; font-weight:700;">${escapeHtml(m.author)} <span style="font-weight:400; color:var(--muted); font-size:0.74rem;">${timeAgo(m.date)}</span></div>
+          <p style="margin:4px 0 0;">${escapeHtml(m.text)}</p>
+        </div>
+      </div>
+    `).join('');
+  },
+  () => {
+    document.getElementById('messages-list').innerHTML = `
+      <div class="error-state">Não consegui carregar os recados. Confira as regras do Firestore e sua internet.</div>`;
+  }
+);
+
+// ---------- Placar da semana ----------
+let entriesLoaded = false, attemptsLoaded = false;
+let allEntries = [], allAttempts = [];
+
+function renderScoreboard(){
+  if(!entriesLoaded || !attemptsLoaded) return;
+  const box = document.getElementById('weekly-scoreboard');
+
+  const oneWeekAgo = new Date();
+  oneWeekAgo.setDate(oneWeekAgo.getDate() - 7);
+
+  const weekEntries = allEntries.filter(e => new Date(e.date) >= oneWeekAgo);
+  const weekAttempts = allAttempts.filter(a => new Date(a.date) >= oneWeekAgo);
+
+  const authors = [...new Set([...allEntries, ...allAttempts].map(x => x.author).filter(Boolean))];
+  if(authors.length === 0){
+    box.innerHTML = '<p class="empty-state">Ainda não há dados suficientes essa semana.</p>';
+    return;
+  }
+
+  const rows = authors.map(author => {
+    const entryCount = weekEntries.filter(e => e.author === author).length;
+    const authorAttempts = weekAttempts.filter(a => a.author === author);
+    const avgPercent = authorAttempts.length > 0
+      ? Math.round(authorAttempts.reduce((sum, a) => sum + a.percent, 0) / authorAttempts.length)
+      : null;
+    return { author, entryCount, quizCount: authorAttempts.length, avgPercent };
+  }).sort((a,b) => b.entryCount - a.entryCount);
+
+  box.innerHTML = `
+    <table id="history-table">
+      <thead><tr><th>Nome</th><th>Registros (7d)</th><th>Provas (7d)</th><th>Média</th></tr></thead>
+      <tbody>
+        ${rows.map(r => `
+          <tr>
+            <td>${escapeHtml(r.author)}${r.author===myName ? ' (você)' : ''}</td>
+            <td>${r.entryCount}</td>
+            <td>${r.quizCount}</td>
+            <td>${r.avgPercent !== null ? r.avgPercent + '%' : '—'}</td>
+          </tr>
+        `).join('')}
+      </tbody>
+    </table>
+  `;
+}
+
+listenStudyEntries(
+  (entries) => { allEntries = entries; entriesLoaded = true; renderScoreboard(); },
+  () => { document.getElementById('weekly-scoreboard').innerHTML = '<div class="error-state">Erro ao carregar.</div>'; }
+);
+listenQuizAttempts(
+  (attempts) => { allAttempts = attempts; attemptsLoaded = true; renderScoreboard(); },
+  () => { document.getElementById('weekly-scoreboard').innerHTML = '<div class="error-state">Erro ao carregar.</div>'; }
+);
+</script>
+
+</body>
+</html>
