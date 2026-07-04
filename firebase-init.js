@@ -4,6 +4,7 @@ import {
   collection,
   addDoc,
   doc,
+  deleteDoc,
   getDoc,
   getDocs,
   query,
@@ -25,7 +26,7 @@ export function setMyName(name){
 export function ensureMyName(){
   let name = getMyName();
   if(!name){
-    name = prompt('Como você se chama? (isso identifica seus registros pro seu amigo)');
+    name = prompt('Como você se chama? (isso identifica seus registros pros outros)');
     if(name && name.trim()){
       setMyName(name.trim());
       name = name.trim();
@@ -37,6 +38,9 @@ export function ensureMyName(){
 // ---------- Diário de estudos ----------
 export async function addStudyEntry(entry){
   await addDoc(collection(db, "studyEntries"), entry);
+}
+export async function deleteStudyEntry(id){
+  await deleteDoc(doc(db, "studyEntries", id));
 }
 export function listenStudyEntries(callback, onError){
   const q = query(collection(db, "studyEntries"), orderBy("date", "desc"));

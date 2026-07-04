@@ -17,13 +17,11 @@
 <div class="wrap">
   <header class="page-header">
     <h1>Painel de Estudos</h1>
-    <p>Seu progresso e o do seu amigo, atualizados em tempo real</p>
+    <p>Progresso de todo mundo que estuda por aqui, atualizado em tempo real</p>
   </header>
 
   <div class="tabs" id="tabs">
     <button data-filter="all" class="active">Todos</button>
-    <button data-filter="me">Só eu</button>
-    <button data-filter="other">Só ele(a)</button>
   </div>
 
   <div id="stats-grid" class="stats-grid"></div>
@@ -55,12 +53,14 @@ let allEntries = [];
 let allAttempts = [];
 let entriesLoaded = false;
 let attemptsLoaded = false;
+let knownAuthors = [];
 
 document.getElementById('tabs').addEventListener('click', (e) => {
-  if(e.target.tagName !== 'BUTTON') return;
+  const btn = e.target.closest('button');
+  if(!btn) return;
   document.querySelectorAll('#tabs button').forEach(b => b.classList.remove('active'));
-  e.target.classList.add('active');
-  currentFilter = e.target.dataset.filter;
+  btn.classList.add('active');
+  currentFilter = btn.dataset.filter;
   render();
 });
 
@@ -70,9 +70,25 @@ function escapeHtml(str){
   return div.innerHTML;
 }
 function filterByAuthor(list){
-  if(currentFilter === 'me') return list.filter(x => x.author === myName);
-  if(currentFilter === 'other') return list.filter(x => x.author !== myName);
-  return list;
+  if(currentFilter === 'all') return list;
+  return list.filter(x => x.author === currentFilter);
+}
+
+function refreshTabs(){
+  const authors = [...new Set([...allEntries, ...allAttempts].map(x => x.author).filter(Boolean))].sort();
+  const changed = authors.length !== knownAuthors.length || authors.some((a,i) => a !== knownAuthors[i]);
+  if(!changed) return;
+  knownAuthors = authors;
+
+  const tabsEl = document.getElementById('tabs');
+  const activeValue = currentFilter;
+  tabsEl.innerHTML = '<button data-filter="all">Todos</button>' + authors.map(a =>
+    `<button data-filter="${escapeHtml(a)}">${a === myName ? 'Meus registros' : escapeHtml(a)}</button>`
+  ).join('');
+
+  const matching = [...tabsEl.querySelectorAll('button')].find(b => b.dataset.filter === activeValue);
+  if(matching){ matching.classList.add('active'); }
+  else { tabsEl.querySelector('button').classList.add('active'); currentFilter = 'all'; }
 }
 
 function showErrorBox(elId, extra){
@@ -85,6 +101,7 @@ function showErrorBox(elId, extra){
 
 function render(){
   if(!entriesLoaded || !attemptsLoaded) return;
+  refreshTabs();
 
   const entries = filterByAuthor(allEntries);
   const attempts = filterByAuthor(allAttempts);

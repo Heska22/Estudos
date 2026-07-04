@@ -71,18 +71,14 @@
     <h3 style="margin-top:0;">Registros</h3>
     <div class="two-col" style="margin-bottom:16px;">
       <select id="filter-subject"><option value="all">Todas as matérias</option></select>
-      <select id="filter-author">
-        <option value="all">Eu e meu amigo</option>
-        <option value="me">Só eu</option>
-        <option value="other">Só ele(a)</option>
-      </select>
+      <select id="filter-author"><option value="all">Todos</option></select>
     </div>
     <div id="entries-list" class="loading-text">Carregando...</div>
   </div>
 </div>
 
 <script type="module">
-import { ensureMyName, addStudyEntry, listenStudyEntries } from "./firebase-init.js";
+import { ensureMyName, addStudyEntry, deleteStudyEntry, listenStudyEntries } from "./firebase-init.js";
 import { SUBJECTS, subjectLabel, subjectColor } from "./subjects.js";
 
 const myName = ensureMyName();
@@ -172,17 +168,33 @@ document.getElementById('entry-form').addEventListener('submit', async function(
 });
 
 let allEntries = [];
+let knownAuthors = [];
 document.getElementById('filter-subject').addEventListener('change', renderEntries);
 document.getElementById('filter-author').addEventListener('change', renderEntries);
 
+function refreshAuthorFilterOptions(){
+  const authors = [...new Set(allEntries.map(e => e.author).filter(Boolean))].sort();
+  const changed = authors.length !== knownAuthors.length || authors.some((a,i) => a !== knownAuthors[i]);
+  if(!changed) return;
+  knownAuthors = authors;
+
+  const select = document.getElementById('filter-author');
+  const currentValue = select.value;
+  select.innerHTML = '<option value="all">Todos</option>' + authors.map(a =>
+    `<option value="${escapeHtml(a)}">${a === myName ? 'Meus registros' : escapeHtml(a)}</option>`
+  ).join('');
+  if([...select.options].some(o => o.value === currentValue)) select.value = currentValue;
+}
+
 function renderEntries(){
+  refreshAuthorFilterOptions();
+
   const subjectFilter = document.getElementById('filter-subject').value;
   const authorFilter = document.getElementById('filter-author').value;
 
   let entries = [...allEntries];
   if(subjectFilter !== 'all') entries = entries.filter(e => e.subject === subjectFilter);
-  if(authorFilter === 'me') entries = entries.filter(e => e.author === myName);
-  if(authorFilter === 'other') entries = entries.filter(e => e.author !== myName);
+  if(authorFilter !== 'all') entries = entries.filter(e => e.author === authorFilter);
 
   const list = document.getElementById('entries-list');
   if(entries.length === 0){
@@ -212,12 +224,30 @@ function renderEntries(){
             </div>
             <p class="entry-notes">${escapeHtml(e.notes)}</p>
             ${e.tags && e.tags.length ? `<div class="meta-row">${e.tags.map(t => `<span class="chip">#${escapeHtml(t)}</span>`).join('')}</div>` : ''}
+            ${e.author === myName ? `<button class="btn danger" data-delete-id="${e.id}">Excluir</button>` : ''}
           </div>
         </div>
       `).join('')}
     </div>
   `).join('');
 }
+
+document.getElementById('entries-list').addEventListener('click', async (e) => {
+  const btn = e.target.closest('[data-delete-id]');
+  if(!btn) return;
+  if(!confirm('Excluir este registro? Essa ação não pode ser desfeita.')) return;
+
+  btn.disabled = true;
+  btn.textContent = 'Excluindo...';
+  try{
+    await deleteStudyEntry(btn.dataset.deleteId);
+  }catch(err){
+    console.error(err);
+    alert('Não foi possível excluir agora. Tente de novo.');
+    btn.disabled = false;
+    btn.textContent = 'Excluir';
+  }
+});
 
 listenStudyEntries(
   (entries) => { allEntries = entries; renderEntries(); },
