@@ -1,0 +1,190 @@
+:root{
+  --bg: #f6f3ec;
+  --paper: #ffffff;
+  --ink: #24272b;
+  --rule: #d8d2c4;
+  --accent-quim: #2f6f5e;
+  --accent-gen: #7a4f9e;
+  --accent-hist: #a15c2b;
+  --ok: #2f6f5e;
+  --bad: #b3492f;
+  --muted: #6b6a63;
+}
+*{box-sizing:border-box;}
+body{
+  margin:0;
+  background:var(--bg);
+  color:var(--ink);
+  font-family: "Georgia", "Iowan Old Style", serif;
+  line-height:1.5;
+}
+.wrap{
+  max-width: 780px;
+  margin: 0 auto;
+  padding: 24px 20px 80px;
+}
+nav.topnav{
+  display:flex;
+  gap: 4px;
+  padding: 14px 20px;
+  background: var(--ink);
+  font-family: "Helvetica Neue", Arial, sans-serif;
+}
+nav.topnav a{
+  color: #e9e5da;
+  text-decoration:none;
+  font-size: 0.85rem;
+  padding: 8px 14px;
+  border-radius: 5px;
+  letter-spacing: 0.3px;
+}
+nav.topnav a.active{
+  background: rgba(255,255,255,0.15);
+  color:#fff;
+  font-weight:700;
+}
+nav.topnav a:hover{ background: rgba(255,255,255,0.1); }
+
+header.page-header{
+  border-bottom: 3px solid var(--ink);
+  padding-bottom: 16px;
+  margin-bottom: 28px;
+}
+header.page-header h1{
+  font-size: 1.6rem;
+  margin: 0 0 6px;
+}
+header.page-header p{
+  margin:0;
+  color: var(--muted);
+  font-family: "Helvetica Neue", Arial, sans-serif;
+  font-size: 0.92rem;
+}
+
+.card{
+  background: var(--paper);
+  border: 1px solid var(--rule);
+  border-radius: 8px;
+  padding: 18px 20px;
+  margin-bottom: 16px;
+}
+
+.stats-grid{
+  display:grid;
+  grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+  gap: 12px;
+  margin-bottom: 24px;
+}
+.stat-box{
+  background: var(--paper);
+  border: 1px solid var(--rule);
+  border-radius: 8px;
+  padding: 16px;
+  text-align:center;
+}
+.stat-box .num{
+  font-size: 1.8rem;
+  font-weight:700;
+  display:block;
+}
+.stat-box .label{
+  font-family: "Helvetica Neue", Arial, sans-serif;
+  font-size: 0.75rem;
+  color: var(--muted);
+  text-transform:uppercase;
+  letter-spacing: 0.5px;
+}
+
+.subject-tag{
+  display:inline-block;
+  font-family: "Helvetica Neue", Arial, sans-serif;
+  font-size: 0.72rem;
+  font-weight:700;
+  text-transform:uppercase;
+  letter-spacing: 0.4px;
+  padding: 3px 9px;
+  border-radius: 20px;
+  color:#fff;
+}
+.subject-tag.quimica{ background: var(--accent-quim); }
+.subject-tag.genetica{ background: var(--accent-gen); }
+.subject-tag.historia{ background: var(--accent-hist); }
+.subject-tag.outro{ background: var(--muted); }
+
+.btn{
+  font-family: "Helvetica Neue", Arial, sans-serif;
+  background: var(--ink);
+  color: #fff;
+  border: none;
+  padding: 12px 22px;
+  border-radius: 6px;
+  font-size: 0.95rem;
+  cursor: pointer;
+  text-decoration:none;
+  display:inline-block;
+}
+.btn:hover{ opacity:0.9; }
+.btn.secondary{
+  background: transparent;
+  color: var(--ink);
+  border: 1px solid var(--ink);
+}
+.btn.danger{
+  background: transparent;
+  color: var(--bad);
+  border: 1px solid var(--bad);
+  padding: 6px 12px;
+  font-size: 0.8rem;
+}
+
+label.field-label{
+  font-family: "Helvetica Neue", Arial, sans-serif;
+  font-size: 0.82rem;
+  font-weight:700;
+  display:block;
+  margin-bottom: 5px;
+  color: var(--muted);
+}
+input[type="text"], input[type="date"], select, textarea{
+  font-family: "Helvetica Neue", Arial, sans-serif;
+  width:100%;
+  padding: 10px 12px;
+  border: 1px solid var(--rule);
+  border-radius: 5px;
+  font-size: 0.95rem;
+  background: var(--paper);
+  margin-bottom: 16px;
+}
+textarea{ min-height: 90px; resize:vertical; }
+
+.entry{
+  display:flex;
+  gap: 14px;
+  align-items:flex-start;
+}
+.entry img{
+  width: 90px;
+  height: 90px;
+  object-fit: cover;
+  border-radius: 6px;
+  border: 1px solid var(--rule);
+  flex-shrink:0;
+}
+.entry .entry-body{ flex:1; }
+.entry .entry-date{
+  font-family: "Helvetica Neue", Arial, sans-serif;
+  font-size: 0.75rem;
+  color: var(--muted);
+  margin-bottom: 4px;
+}
+.entry .entry-notes{
+  margin: 8px 0 6px;
+  font-size: 0.98rem;
+}
+.empty-state{
+  font-family: "Helvetica Neue", Arial, sans-serif;
+  color: var(--muted);
+  font-size: 0.9rem;
+  text-align:center;
+  padding: 30px 10px;
+}

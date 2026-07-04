@@ -1,0 +1,183 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Diário de Estudos</title>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<nav class="topnav">
+  <a href="index.html">Início</a>
+  <a href="diario.html" class="active">Diário de Estudos</a>
+  <a href="prova.html">Provas</a>
+</nav>
+
+<div class="wrap">
+  <header class="page-header">
+    <h1>Diário de Estudos</h1>
+    <p>Registre o que você estudou hoje — texto e foto ficam salvos neste navegador</p>
+  </header>
+
+  <div class="card">
+    <form id="entry-form">
+      <label class="field-label">Data</label>
+      <input type="date" id="entry-date" required>
+
+      <label class="field-label">Assunto</label>
+      <select id="entry-subject">
+        <option value="quimica">Química — Tabela Periódica</option>
+        <option value="genetica">Genética</option>
+        <option value="historia">História — Revolução Industrial</option>
+        <option value="outro">Outro</option>
+      </select>
+
+      <label class="field-label">O que você estudou?</label>
+      <textarea id="entry-notes" placeholder="Ex: Revisei os 20 primeiros elementos e fiz resumo dos grupos da tabela periódica..." required></textarea>
+
+      <label class="field-label">Foto (opcional — print, foto do caderno, etc.)</label>
+      <input type="file" id="entry-photo" accept="image/*">
+      <div id="photo-preview" style="margin-bottom:16px;"></div>
+
+      <button type="submit" class="btn">Salvar registro</button>
+    </form>
+  </div>
+
+  <div class="card">
+    <h3 style="margin-top:0;">Seus registros</h3>
+    <div style="margin-bottom:14px;">
+      <select id="filter-subject" style="margin-bottom:0;">
+        <option value="all">Todos os assuntos</option>
+        <option value="quimica">Química</option>
+        <option value="genetica">Genética</option>
+        <option value="historia">História</option>
+        <option value="outro">Outro</option>
+      </select>
+    </div>
+    <div id="entries-list"></div>
+  </div>
+</div>
+
+<script>
+const STORAGE_KEY = 'studyLog';
+
+function getEntries(){
+  try{ return JSON.parse(localStorage.getItem(STORAGE_KEY) || '[]'); }
+  catch(e){ return []; }
+}
+function saveEntries(entries){
+  localStorage.setItem(STORAGE_KEY, JSON.stringify(entries));
+}
+function subjectLabel(s){
+  const map = {quimica:'Química', genetica:'Genética', historia:'História', outro:'Outro'};
+  return map[s] || 'Outro';
+}
+function escapeHtml(str){
+  const div = document.createElement('div');
+  div.textContent = str;
+  return div.innerHTML;
+}
+
+document.getElementById('entry-date').valueAsDate = new Date();
+
+let pendingPhoto = null;
+document.getElementById('entry-photo').addEventListener('change', function(e){
+  const file = e.target.files[0];
+  const preview = document.getElementById('photo-preview');
+  if(!file){ pendingPhoto = null; preview.innerHTML = ''; return; }
+
+  if(file.size > 3 * 1024 * 1024){
+    alert('Essa imagem é grande demais (limite de ~3MB). Tente uma foto menor ou comprimida.');
+    e.target.value = '';
+    pendingPhoto = null;
+    preview.innerHTML = '';
+    return;
+  }
+
+  const reader = new FileReader();
+  reader.onload = function(ev){
+    pendingPhoto = ev.target.result;
+    preview.innerHTML = '<img src="'+pendingPhoto+'" style="max-width:140px; border-radius:6px; border:1px solid var(--rule);">';
+  };
+  reader.readAsDataURL(file);
+});
+
+document.getElementById('entry-form').addEventListener('submit', function(e){
+  e.preventDefault();
+
+  const date = document.getElementById('entry-date').value;
+  const subject = document.getElementById('entry-subject').value;
+  const notes = document.getElementById('entry-notes').value.trim();
+
+  if(!notes){
+    alert('Escreva um pouco sobre o que você estudou.');
+    return;
+  }
+
+  const entries = getEntries();
+  entries.push({
+    id: Date.now(),
+    date: date,
+    subject: subject,
+    notes: notes,
+    photo: pendingPhoto
+  });
+
+  try{
+    saveEntries(entries);
+  }catch(err){
+    alert('Não foi possível salvar (o navegador pode estar sem espaço de armazenamento). Tente uma foto menor ou remova registros antigos.');
+    return;
+  }
+
+  document.getElementById('entry-form').reset();
+  document.getElementById('entry-date').valueAsDate = new Date();
+  document.getElementById('photo-preview').innerHTML = '';
+  pendingPhoto = null;
+
+  renderEntries();
+});
+
+document.getElementById('filter-subject').addEventListener('change', renderEntries);
+
+function renderEntries(){
+  const filter = document.getElementById('filter-subject').value;
+  let entries = getEntries().sort((a,b) => new Date(b.date) - new Date(a.date));
+
+  if(filter !== 'all'){
+    entries = entries.filter(e => e.subject === filter);
+  }
+
+  const list = document.getElementById('entries-list');
+
+  if(entries.length === 0){
+    list.innerHTML = '<p class="empty-state">Nenhum registro por aqui ainda.</p>';
+    return;
+  }
+
+  list.innerHTML = entries.map(e => `
+    <div class="entry" style="margin-bottom:16px; padding-bottom:16px; border-bottom:1px solid var(--rule);" data-id="${e.id}">
+      ${e.photo ? `<img src="${e.photo}" alt="foto do estudo">` : ''}
+      <div class="entry-body">
+        <div class="entry-date">${new Date(e.date).toLocaleDateString('pt-BR')}</div>
+        <span class="subject-tag ${e.subject}">${subjectLabel(e.subject)}</span>
+        <p class="entry-notes">${escapeHtml(e.notes)}</p>
+        <button class="btn danger" onclick="deleteEntry(${e.id})">Excluir</button>
+      </div>
+    </div>
+  `).join('');
+}
+
+function deleteEntry(id){
+  if(!confirm('Excluir este registro?')) return;
+  const entries = getEntries().filter(e => e.id !== id);
+  saveEntries(entries);
+  renderEntries();
+}
+
+renderEntries();
+</script>
+
+</body>
+</html>
