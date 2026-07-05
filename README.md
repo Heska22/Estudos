@@ -15,14 +15,28 @@ Site com:
    - `provas.html`
    - `prova-jogar.html`
    - `nova-prova.html`
+   - `revisao.html`
+   - `mural.html`
+   - `perfil.html`
    - `style.css`
    - `firebase-config.js`
    - `firebase-init.js`
    - `subjects.js`
    - `theme.js`
    - `gamification.js`
+   - `auth.js`
+   - `lightbox.js`
+   - `.nojekyll` (crie direto pelo site do GitHub, é um arquivo vazio — veja nota abaixo)
    - `FEATURES.md`
    - `README.md`
+
+## Sobre o novo login (Lote 3)
+
+Agora, ao abrir o site pela primeira vez em cada aparelho, aparece uma tela pedindo **nome + senha** (e opcionalmente uma foto de perfil). Da primeira vez que alguém usa um nome, a conta é criada automaticamente com a senha digitada. Da segunda vez em diante, precisa da mesma senha pra confirmar que é a mesma pessoa.
+
+Depois de entrar uma vez, o aparelho lembra (não pede de novo) até a pessoa clicar em "Sair" na página de Perfil.
+
+**Importante:** essa senha não tem criptografia de verdade, é só uma trava simples pra vocês dois não confundirem os registros um do outro. Não usem uma senha "de verdade" (a mesma do email, banco, etc.) aqui.
 3. Em **Settings → Pages**, ative o branch `main` / pasta raiz.
 4. Aguarde ~1 minuto — vai aparecer o link `https://seuusuario.github.io/estudos/`.
 
@@ -50,6 +64,14 @@ Ela é só uma trava simples pra evitar que seu amigo crie provas por engano —
 ## Sobre as respostas corretas nas provas
 
 As respostas ficam ocultas na tela até o envio, mas como o site roda inteiramente no navegador (sem servidor "por trás"), alguém que soubesse mexer no código do navegador (F12 → aba de rede) tecnicamente conseguiria ver os dados da prova antes de responder. Pra dois amigos brincando nos fins de semana isso não é um problema real, só é bom saber que não é um cofre inviolável.
+
+## Sobre o arquivo .nojekyll
+
+Esse arquivo é vazio e começa com ponto, então fica escondido no seu computador — não dá pra arrastar ele normalmente. Crie direto pelo GitHub: **Add file → Create new file**, digite o nome `.nojekyll`, deixe o conteúdo vazio e faça commit. Ele evita erros de build do GitHub Pages.
+
+## Sobre provas criadas antes do Lote 2
+
+Se você já tinha provas publicadas antes dessa atualização, as questões delas não têm o campo `"subject"` — o site vai tratá-las como matéria "geral" nas estatísticas. Não precisa refazer nada, só as provas novas que você criar de agora em diante já vêm com a matéria certinha se você preencher esse campo no JSON.
 
 ## Sobre as fotos
 

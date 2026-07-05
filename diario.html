@@ -17,6 +17,7 @@
     <a href="revisao.html">Revisão</a>
     <a href="mural.html">Mural</a>
   </div>
+  <div id="profile-chip"></div>
   <button id="theme-toggle" title="Alternar tema claro/escuro">🌙</button>
 </nav>
 
@@ -88,11 +89,15 @@
 import { setupThemeToggle } from "./theme.js";
 setupThemeToggle();
 
-import { ensureMyName, addStudyEntry, updateStudyEntry, deleteStudyEntry, listenStudyEntries } from "./firebase-init.js";
+import { requireLogin, mountProfileChip } from "./auth.js";
+import { addStudyEntry, updateStudyEntry, deleteStudyEntry, listenStudyEntries } from "./firebase-init.js";
 import { SUBJECTS, subjectLabel, subjectColor } from "./subjects.js";
 import { getAvatarColor } from "./gamification.js";
+import { enableLightbox } from "./lightbox.js";
+enableLightbox('#entries-list');
 
-const myName = ensureMyName();
+const myName = await requireLogin();
+mountProfileChip(myName);
 document.getElementById('entry-date').valueAsDate = new Date();
 let editingId = null;
 
@@ -307,10 +312,10 @@ document.getElementById('entries-list').addEventListener('click', async (e) => {
 
 listenStudyEntries(
   (entries) => { allEntries = entries; renderEntries(); },
-  () => {
+  (err) => {
     document.getElementById('entries-list').innerHTML = `
       <div class="error-state">
-        Não consegui carregar os registros agora. Confira se as regras do Firestore foram publicadas e sua internet.
+        Não consegui carregar os registros agora.<br>Erro técnico: ${escapeHtml(err.message || String(err))}
       </div>`;
   }
 );

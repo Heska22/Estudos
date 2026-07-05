@@ -17,6 +17,7 @@
     <a href="revisao.html">Revisão</a>
     <a href="mural.html">Mural</a>
   </div>
+  <div id="profile-chip"></div>
   <button id="theme-toggle" title="Alternar tema claro/escuro">🌙</button>
 </nav>
 
@@ -84,6 +85,10 @@ setupThemeToggle();
 
 import { ADMIN_PASSPHRASE } from "./firebase-config.js";
 import { addQuiz } from "./firebase-init.js";
+import { requireLogin, mountProfileChip } from "./auth.js";
+
+const myName = await requireLogin();
+mountProfileChip(myName);
 
 document.getElementById('unlock-btn').addEventListener('click', () => {
   const val = document.getElementById('passphrase').value;

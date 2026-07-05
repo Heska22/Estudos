@@ -106,6 +106,17 @@ export function listenQuizAttempts(callback, onError){
 function sanitizeIdPart(str){
   return (str || '').toString().replace(/[^a-zA-Z0-9_-]/g, '_');
 }
+export { sanitizeIdPart as sanitizeId };
+
+// ---------- Perfis (login simples com nome + senha + foto) ----------
+export async function getProfile(name){
+  const ref = doc(db, "profiles", sanitizeIdPart(name));
+  const snap = await getDoc(ref);
+  return snap.exists() ? snap.data() : null;
+}
+export async function setProfile(name, data){
+  await setDoc(doc(db, "profiles", sanitizeIdPart(name)), data, { merge: true });
+}
 export function wrongQuestionId(author, sourceQuizId, questionId){
   return `${sanitizeIdPart(author)}__${sanitizeIdPart(sourceQuizId)}__${sanitizeIdPart(questionId)}`;
 }

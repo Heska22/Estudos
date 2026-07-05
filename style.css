@@ -373,6 +373,41 @@ table#history-table th{
 }
 table#history-table tr:last-child td{ border-bottom:none; }
 
+.entry img{ cursor: zoom-in; transition: transform 0.15s ease; }
+.entry img:hover{ transform: scale(1.03); }
+
+#lightbox-overlay{
+  position: fixed;
+  inset: 0;
+  background: rgba(10,9,8,0.9);
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  z-index: 9998;
+  padding: 24px;
+  cursor: zoom-out;
+}
+#lightbox-overlay img{
+  max-width: 92vw;
+  max-height: 88vh;
+  border-radius: 10px;
+  box-shadow: 0 20px 60px rgba(0,0,0,0.5);
+  cursor: default;
+}
+#lightbox-close{
+  position: absolute;
+  top: 18px;
+  right: 22px;
+  background: rgba(255,255,255,0.15);
+  color:#fff;
+  border:none;
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  font-size: 1.2rem;
+  cursor: pointer;
+}
+
 #theme-toggle{
   background: transparent;
   border: 1.5px solid rgba(255,255,255,0.25);
@@ -388,6 +423,11 @@ table#history-table tr:last-child td{ border-bottom:none; }
   flex-shrink:0;
 }
 #theme-toggle:hover{ background: rgba(255,255,255,0.1); }
+
+#profile-chip{ flex-shrink:0; }
+@media (max-width: 640px){
+  .profile-chip-name{ display:none; }
+}
 
 .avatar-bubble{
   display:inline-flex;

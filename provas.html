@@ -17,6 +17,7 @@
     <a href="revisao.html">Revisão</a>
     <a href="mural.html">Mural</a>
   </div>
+  <div id="profile-chip"></div>
   <button id="theme-toggle" title="Alternar tema claro/escuro">🌙</button>
 </nav>
 
@@ -65,10 +66,12 @@
 import { setupThemeToggle } from "./theme.js";
 setupThemeToggle();
 
-import { ensureMyName, listenQuizzes, listenQuizAttempts, listenWrongQuestions } from "./firebase-init.js";
+import { requireLogin, mountProfileChip } from "./auth.js";
+import { listenQuizzes, listenQuizAttempts, listenWrongQuestions } from "./firebase-init.js";
 import { SUBJECTS, subjectLabel } from "./subjects.js";
 
-const myName = ensureMyName();
+const myName = await requireLogin();
+mountProfileChip(myName);
 let allAttempts = [];
 let latestQuizzes = [];
 let quizzesLoaded = false;
@@ -178,21 +181,21 @@ function renderWrongCount(count){
 
 listenWrongQuestions(
   (items) => { renderWrongCount(items.filter(i => i.author === myName).length); },
-  () => { document.getElementById('wrong-count-label').textContent = 'Não foi possível carregar.'; }
+  (err) => { document.getElementById('wrong-count-label').textContent = 'Erro: ' + (err.message || String(err)); }
 );
 
 listenQuizzes(
   (quizzes) => { latestQuizzes = quizzes; quizzesLoaded = true; renderQuizzes(); },
-  () => {
+  (err) => {
     document.getElementById('quiz-list').innerHTML = `
-      <div class="error-state">Não consegui carregar as provas. Confira as regras do Firestore e sua internet.</div>`;
+      <div class="error-state">Não consegui carregar as provas.<br>Erro técnico: ${escapeHtml(err.message || String(err))}</div>`;
   }
 );
 listenQuizAttempts(
   (attempts) => { allAttempts = attempts; attemptsLoaded = true; renderQuizzes(); renderLeaderboard(); renderSubjectAccuracy(); },
-  () => {
+  (err) => {
     document.getElementById('leaderboard').innerHTML = `
-      <div class="error-state">Não consegui carregar o placar. Confira as regras do Firestore e sua internet.</div>`;
+      <div class="error-state">Não consegui carregar o placar.<br>Erro técnico: ${escapeHtml(err.message || String(err))}</div>`;
   }
 );
 </script>

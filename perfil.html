@@ -1,0 +1,158 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<script>document.documentElement.setAttribute('data-theme', localStorage.getItem('theme') || 'light');</script>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Seu Perfil</title>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<nav class="topnav">
+  <div class="nav-links">
+    <a href="index.html">Início</a>
+    <a href="diario.html">Diário de Estudos</a>
+    <a href="provas.html">Provas</a>
+    <a href="revisao.html">Revisão</a>
+    <a href="mural.html">Mural</a>
+  </div>
+  <div id="profile-chip"></div>
+  <button id="theme-toggle" title="Alternar tema claro/escuro">🌙</button>
+</nav>
+
+<div class="wrap">
+  <header class="page-header">
+    <h1>Seu Perfil</h1>
+    <p>Troque sua foto ou senha</p>
+  </header>
+
+  <div class="card">
+    <div style="display:flex; align-items:center; gap:16px; margin-bottom:20px;">
+      <div id="current-photo-box"></div>
+      <div style="font-family:'Fraunces',serif; font-size:1.3rem; font-weight:600;" id="profile-name-label"></div>
+    </div>
+    <label class="field-label">Trocar foto</label>
+    <input type="file" id="new-photo" accept="image/*">
+    <button class="btn" id="save-photo-btn">Salvar foto</button>
+    <p id="photo-msg" style="font-size:0.85rem; margin-top:10px;"></p>
+  </div>
+
+  <div class="card">
+    <h3 style="margin-top:0;">Trocar senha</h3>
+    <label class="field-label">Senha atual</label>
+    <input type="password" id="current-password">
+    <label class="field-label">Nova senha</label>
+    <input type="password" id="new-password">
+    <button class="btn" id="save-password-btn">Salvar nova senha</button>
+    <p id="password-msg" style="font-size:0.85rem; margin-top:10px;"></p>
+  </div>
+
+  <div class="card" style="text-align:center;">
+    <p style="font-size:0.85rem; color:var(--muted); margin-top:0;">Sair troca pra outra conta neste aparelho (pede nome e senha de novo).</p>
+    <button class="btn secondary" id="logout-btn" style="border-color:var(--bad); color:var(--bad);">Sair desta conta</button>
+  </div>
+</div>
+
+<script type="module">
+import { setupThemeToggle } from "./theme.js";
+setupThemeToggle();
+
+import { requireLogin, mountProfileChip, getCachedPhoto, logout } from "./auth.js";
+import { getProfile, setProfile } from "./firebase-init.js";
+
+const myName = await requireLogin();
+mountProfileChip(myName);
+
+document.getElementById('profile-name-label').textContent = myName;
+
+function renderCurrentPhoto(){
+  const photo = getCachedPhoto();
+  const initial = myName.trim().charAt(0).toUpperCase();
+  document.getElementById('current-photo-box').innerHTML = photo
+    ? `<img src="${photo}" style="width:70px; height:70px; border-radius:50%; object-fit:cover; border:1px solid var(--rule);">`
+    : `<div style="width:70px; height:70px; border-radius:50%; background:var(--bg); border:1px solid var(--rule); display:flex; align-items:center; justify-content:center; font-size:1.6rem; font-weight:700; color:var(--muted);">${initial}</div>`;
+}
+renderCurrentPhoto();
+
+let newPhotoData = null;
+document.getElementById('new-photo').addEventListener('change', (e) => {
+  const file = e.target.files[0];
+  const msg = document.getElementById('photo-msg');
+  if(!file) return;
+
+  if(file.size > 900 * 1024){
+    msg.textContent = 'Essa foto é grande demais (limite de ~900KB). Escolha uma menor.';
+    e.target.value = '';
+    return;
+  }
+
+  const reader = new FileReader();
+  reader.onload = (ev) => { newPhotoData = ev.target.result; msg.textContent = 'Foto pronta pra salvar.'; };
+  reader.readAsDataURL(file);
+});
+
+document.getElementById('save-photo-btn').addEventListener('click', async () => {
+  const msg = document.getElementById('photo-msg');
+  if(!newPhotoData){ msg.textContent = 'Escolha uma foto primeiro.'; return; }
+
+  const btn = document.getElementById('save-photo-btn');
+  btn.disabled = true;
+  btn.textContent = 'Salvando...';
+
+  try{
+    await setProfile(myName, { photo: newPhotoData });
+    localStorage.setItem('myPhotoCache', newPhotoData);
+    renderCurrentPhoto();
+    mountProfileChip(myName);
+    msg.textContent = 'Foto atualizada! ✔';
+  }catch(err){
+    console.error(err);
+    msg.textContent = 'Erro ao salvar: ' + (err.message || String(err));
+  } finally {
+    btn.disabled = false;
+    btn.textContent = 'Salvar foto';
+  }
+});
+
+document.getElementById('save-password-btn').addEventListener('click', async () => {
+  const current = document.getElementById('current-password').value;
+  const next = document.getElementById('new-password').value;
+  const msg = document.getElementById('password-msg');
+  msg.textContent = '';
+
+  if(!current || !next){
+    msg.textContent = 'Preencha os dois campos.';
+    return;
+  }
+
+  const btn = document.getElementById('save-password-btn');
+  btn.disabled = true;
+  btn.textContent = 'Verificando...';
+
+  try{
+    const profile = await getProfile(myName);
+    if(!profile || profile.password !== current){
+      msg.textContent = 'Senha atual incorreta.';
+      return;
+    }
+    await setProfile(myName, { password: next });
+    document.getElementById('current-password').value = '';
+    document.getElementById('new-password').value = '';
+    msg.textContent = 'Senha atualizada! ✔';
+  }catch(err){
+    console.error(err);
+    msg.textContent = 'Erro ao salvar: ' + (err.message || String(err));
+  } finally {
+    btn.disabled = false;
+    btn.textContent = 'Salvar nova senha';
+  }
+});
+
+document.getElementById('logout-btn').addEventListener('click', () => {
+  if(confirm('Sair desta conta neste aparelho?')) logout();
+});
+</script>
+
+</body>
+</html>

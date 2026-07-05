@@ -17,6 +17,7 @@
     <a href="revisao.html">Revisão</a>
     <a href="mural.html" class="active">Mural</a>
   </div>
+  <div id="profile-chip"></div>
   <button id="theme-toggle" title="Alternar tema claro/escuro">🌙</button>
 </nav>
 
@@ -45,10 +46,12 @@
 import { setupThemeToggle } from "./theme.js";
 setupThemeToggle();
 
-import { ensureMyName, addMessage, listenMessages, listenStudyEntries, listenQuizAttempts } from "./firebase-init.js";
+import { requireLogin, mountProfileChip } from "./auth.js";
+import { addMessage, listenMessages, listenStudyEntries, listenQuizAttempts } from "./firebase-init.js";
 import { getAvatarColor, getInitial } from "./gamification.js";
 
-const myName = ensureMyName();
+const myName = await requireLogin();
+mountProfileChip(myName);
 
 function escapeHtml(str){
   const div = document.createElement('div');
@@ -105,9 +108,9 @@ listenMessages(
       </div>
     `).join('');
   },
-  () => {
+  (err) => {
     document.getElementById('messages-list').innerHTML = `
-      <div class="error-state">Não consegui carregar os recados. Confira as regras do Firestore e sua internet.</div>`;
+      <div class="error-state">Não consegui carregar os recados.<br>Erro técnico: ${escapeHtml(err.message || String(err))}</div>`;
   }
 );
 
@@ -159,11 +162,11 @@ function renderScoreboard(){
 
 listenStudyEntries(
   (entries) => { allEntries = entries; entriesLoaded = true; renderScoreboard(); },
-  () => { document.getElementById('weekly-scoreboard').innerHTML = '<div class="error-state">Erro ao carregar.</div>'; }
+  (err) => { document.getElementById('weekly-scoreboard').innerHTML = `<div class="error-state">Erro ao carregar: ${escapeHtml(err.message || String(err))}</div>`; }
 );
 listenQuizAttempts(
   (attempts) => { allAttempts = attempts; attemptsLoaded = true; renderScoreboard(); },
-  () => { document.getElementById('weekly-scoreboard').innerHTML = '<div class="error-state">Erro ao carregar.</div>'; }
+  (err) => { document.getElementById('weekly-scoreboard').innerHTML = `<div class="error-state">Erro ao carregar: ${escapeHtml(err.message || String(err))}</div>`; }
 );
 </script>
 

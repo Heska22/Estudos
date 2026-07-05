@@ -5,16 +5,19 @@ Este arquivo é a fonte de verdade sobre o que existe no site. Sempre que pedir 
 ## Estrutura de arquivos
 
 - `index.html` — Painel inicial (estatísticas, streak, XP, conquistas, gráfico por matéria, sugestões de revisão, últimos registros/provas)
-- `diario.html` — Diário de estudos (criar, editar, excluir, filtrar registros)
+- `diario.html` — Diário de estudos (criar, editar, excluir, filtrar registros, zoom nas fotos)
 - `provas.html` — Lista de provas, prova aleatória, precisão por matéria, placar geral
 - `prova-jogar.html` — Executa uma prova específica (via `?id=`) ou aleatória (via `?random=1&n=15`)
 - `nova-prova.html` — Página restrita (senha) pra publicar novas provas
 - `revisao.html` — Banco de questões erradas (retry até acertar)
 - `mural.html` — Recados entre os dois + placar semanal
-- `style.css` — Estilo visual compartilhado (inclui tema claro/escuro)
+- `perfil.html` — Trocar foto de perfil e senha, sair da conta
+- `style.css` — Estilo visual compartilhado (inclui tema claro/escuro, lightbox, chip de perfil)
 - `theme.js` — Lógica do modo escuro/claro
 - `subjects.js` — Lista de matérias, cores e rótulos
 - `gamification.js` — Streak, XP, nível, conquistas, cor/inicial de avatar
+- `auth.js` — Login (nome + senha + foto), sessão salva no aparelho, chip de perfil na navbar
+- `lightbox.js` — Visualizador de foto em tela cheia (clique pra ampliar)
 - `firebase-config.js` — Credenciais do Firebase + senha de admin de provas
 - `firebase-init.js` — Funções de acesso ao Firestore (ler/gravar dados)
 - `prova-exemplo-1.json` — Conteúdo da primeira prova (com campo "subject" em cada questão)
@@ -24,25 +27,22 @@ Este arquivo é a fonte de verdade sobre o que existe no site. Sempre que pedir 
 - `studyEntries` — registros do diário: `{author, date, subject, customSubject, notes, minutes, difficulty, tags[], photo, createdAt}`
 - `quizzes` — provas cadastradas: `{title, dateCreated, questions[]}` (cada questão: `{id, type, subject, stem, options[], correct}`)
 - `quizAttempts` — tentativas de prova: `{author, quizId, quizTitle, correct, total, percent, answers[], date}` (`answers`: `[{questionId, subject, correct}]`, usado pra estatística por matéria)
-- `wrongQuestions` — banco de questões erradas: `{author, sourceQuizId, sourceQuizTitle, questionId, subject, stem, options, correct, date}` (ID do doc é determinístico: `autor__provaOrigem__questao`, pra sempre sobrescrever/remover certinho)
+- `wrongQuestions` — banco de questões erradas: `{author, sourceQuizId, sourceQuizTitle, questionId, subject, stem, options, correct, date}` (ID do doc é determinístico: `autor__provaOrigem__questao`)
 - `messages` — recados do mural: `{author, text, date}`
+- `profiles` — contas de login: `{name, password, photo, createdAt}` (ID do doc = nome sanitizado; **senha em texto puro, sem criptografia real** — ok pra uso casual entre amigos, não use senha que você usa em outro lugar)
 
 ## Status das funcionalidades
 
 ### ✅ Implementado (Lote 1)
-- Painel compartilhado em tempo real, diário com múltiplas matérias/tags/dificuldade/tempo/foto
-- Editar e excluir registros do diário (só o autor)
-- Provas dinâmicas cadastradas via `nova-prova.html`, placar geral
-- Filtros por nome real, modo escuro/claro
-- Streak, gráfico de progresso por matéria, XP/Nível, conquistas/medalhas
+Painel compartilhado, diário com múltiplas matérias/tags/dificuldade/tempo/foto, editar/excluir registros, provas dinâmicas, placar geral, filtros por nome, modo escuro/claro, streak, gráfico por matéria, XP/Nível, conquistas.
 
 ### ✅ Implementado (Lote 2)
-- **Estatística por matéria nas provas** (exige que as questões tenham campo "subject" — provas antigas sem esse campo contam como "geral")
-- **Banco de questões erradas** (`revisao.html`) — erros de qualquer prova (normal ou aleatória) entram automaticamente; acertar de novo remove da lista
-- **Prova aleatória** — sorteia N questões (padrão 15) de todas as provas já cadastradas
-- **Lembrete de revisão espaçada** — no painel, avisa quais matérias estão há 3+ dias sem estudo
-- **Mural social/competitivo** (`mural.html`) — recados entre os dois + placar comparando registros/provas dos últimos 7 dias
-- Avatares coloridos com inicial do nome (toque visual)
+Estatística por matéria nas provas, banco de questões erradas (`revisao.html`), prova aleatória, lembrete de revisão espaçada, mural social/competitivo (`mural.html`), avatares coloridos.
+
+### ✅ Implementado (Lote 3 — correções + perfil)
+- **Mensagens de erro mostram o motivo técnico real** (não mais "confira as regras" genérico — agora aparece a mensagem exata do erro, pra debugar mais rápido)
+- **Zoom nas fotos do diário** — clique em qualquer foto (diário ou painel) pra ver em tela cheia; Esc ou clique fora fecha
+- **Sistema de login/perfil** (`auth.js` + `perfil.html`) — nome + senha simples na primeira visita, cria conta automaticamente; próximas visitas no mesmo aparelho não pedem de novo (sessão salva); dá pra trocar foto de perfil e senha em `perfil.html`; chip do perfil aparece no canto da navbar em toda página
 
 ### 🔜 Planejado (ainda não implementado)
 - PWA (instalar como app no celular)
@@ -66,3 +66,6 @@ Este arquivo é a fonte de verdade sobre o que existe no site. Sempre que pedir 
 - 📝 Primeira Prova — 1 prova concluída
 - 💯 Perfeição — alguma prova com 100%
 - 🌐 Poliglota dos Estudos — estudou 5+ matérias diferentes
+
+## Nota sobre login e segurança
+O login com senha é uma proteção leve, não é um sistema de segurança de verdade — a senha fica salva sem criptografia no banco. Serve pra evitar que alguém digite o nome errado sem querer, não pra proteger dados sensíveis. Nunca reutilizem uma senha "de verdade" (email, banco, etc.) aqui.
