@@ -18,7 +18,7 @@ Este arquivo é a fonte de verdade sobre o que existe no site. Sempre que pedir 
 - `gamification.js` — Streak, XP, nível, conquistas, cor/inicial de avatar
 - `auth.js` — Login (nome + senha + foto), sessão salva no aparelho, chip de perfil na navbar
 - `lightbox.js` — Visualizador de foto em tela cheia (clique pra ampliar)
-- `firebase-config.js` — Credenciais do Firebase + senha de admin de provas
+- `firebase-config.js` — Credenciais do Firebase + nome do dono do site
 - `firebase-init.js` — Funções de acesso ao Firestore (ler/gravar dados)
 - `prova-exemplo-1.json` — Conteúdo da primeira prova (com campo "subject" em cada questão)
 
@@ -44,9 +44,15 @@ Estatística por matéria nas provas, banco de questões erradas (`revisao.html`
 - **Zoom nas fotos do diário** — clique em qualquer foto (diário ou painel) pra ver em tela cheia; Esc ou clique fora fecha
 - **Sistema de login/perfil** (`auth.js` + `perfil.html`) — nome + senha simples na primeira visita, cria conta automaticamente; próximas visitas no mesmo aparelho não pedem de novo (sessão salva); dá pra trocar foto de perfil e senha em `perfil.html`; chip do perfil aparece no canto da navbar em toda página
 
+### ✅ Implementado (Lote 4 — dono do site + upload de provas)
+- **Cargo de "dono"** (`OWNER_NAME` em `firebase-config.js`) — só essa pessoa (pelo nome de login) vê "Criar nova prova" e o botão de excluir. Substitui a senha compartilhada.
+- **Upload de arquivo `.json`** em `nova-prova.html` (arrastar ou selecionar), com preview automático — resolve o problema de colar texto pela metade
+- **Excluir prova** — botão 🗑️ na lista, só visível pro dono
+- Aviso claro de acesso restrito pra quem não é o dono
+
 ### 🔜 Planejado (ainda não implementado)
 - PWA (instalar como app no celular)
-- Editar uma prova já publicada (hoje só dá pra criar novas)
+- Editar uma prova já publicada (hoje só dá pra criar ou excluir)
 - Múltiplas fotos por registro de diário
 - Cronômetro/tempo limite nas provas
 - Metas semanais por matéria com barra de progresso

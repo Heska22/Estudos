@@ -85,6 +85,9 @@ export async function getAllQuizzesOnce(){
   snap.forEach(d => quizzes.push({ id: d.id, ...d.data() }));
   return quizzes;
 }
+export async function deleteQuiz(id){
+  await deleteDoc(doc(db, "quizzes", id));
+}
 
 // ---------- Tentativas de prova ----------
 export async function addQuizAttempt(attempt){

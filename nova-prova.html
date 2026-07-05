@@ -24,58 +24,30 @@
 <div class="wrap">
   <header class="page-header">
     <h1>Criar Nova Prova</h1>
-    <p>Área restrita — só quem sabe a senha consegue publicar</p>
+    <p>Área restrita ao dono do site</p>
   </header>
 
-  <div id="gate" class="card">
-    <label class="field-label">Senha de acesso</label>
-    <input type="text" id="passphrase" placeholder="Digite a senha">
-    <button class="btn" id="unlock-btn">Entrar</button>
+  <div id="locked-message" class="card" style="display:none; text-align:center;">
+    <p class="empty-state">Essa área é restrita ao dono do site. Você está logado como outra pessoa.</p>
   </div>
 
   <div id="editor" class="card" style="display:none;">
     <div class="notice">
-      Cole abaixo o JSON da prova (peça pro Claude gerar pra você, no formato certo — é só copiar e colar aqui). Cada questão deve ter um campo <code>"subject"</code> (use os mesmos ids do diário: quimica, biologia, genetica, fisica, matematica, historia, geografia, filosofia, sociologia, portugues, ingles, ou "geral" se não se aplicar) — isso alimenta as estatísticas por matéria. Depois clique em pré-visualizar antes de publicar.
+      Envie o arquivo <code>.json</code> da prova (peça pro Claude gerar pra você) — arraste ou selecione o arquivo abaixo. Cada questão deve ter um campo <code>"subject"</code> (quimica, biologia, genetica, fisica, matematica, historia, geografia, filosofia, sociologia, portugues, ingles, ou "geral"). A pré-visualização aparece automaticamente.
     </div>
+
     <label class="field-label">Título da prova</label>
     <input type="text" id="quiz-title-input" placeholder="Ex: Prova 2 — Fim de semana 11/07">
 
-    <label class="field-label">JSON das questões</label>
-    <textarea id="quiz-json-input" style="min-height:220px; font-family: monospace; font-size:0.82rem;" placeholder='[
-  {
-    "id": "q1",
-    "type": "mc",
-    "subject": "quimica",
-    "stem": "Pergunta aqui?",
-    "options": [
-      {"value":"a","label":"a) Opção 1"},
-      {"value":"b","label":"b) Opção 2"}
-    ],
-    "correct": "b"
-  },
-  {
-    "id": "q2",
-    "type": "vf",
-    "subject": "historia",
-    "stem": "Verdadeiro ou falso: ...",
-    "options": [
-      {"value":"verdadeiro","label":"Verdadeiro"},
-      {"value":"falso","label":"Falso"}
-    ],
-    "correct": "verdadeiro"
-  },
-  {
-    "id": "q3",
-    "type": "discursive",
-    "subject": "geral",
-    "stem": "Pergunta discursiva aqui..."
-  }
-]'></textarea>
+    <label class="field-label">Arquivo da prova (.json)</label>
+    <div id="drop-zone" class="drop-zone">
+      <input type="file" id="quiz-file-input" accept=".json,application/json" style="display:none;">
+      <p id="drop-zone-text">📄 Clique aqui ou arraste o arquivo .json</p>
+    </div>
 
-    <button class="btn secondary" id="preview-btn">Pré-visualizar</button>
-    <button class="btn" id="publish-btn" style="display:none;">Publicar prova</button>
+    <div id="preview-box" style="margin-top:20px;"></div>
 
-    <div id="preview-box" style="margin-top:16px;"></div>
+    <button class="btn" id="publish-btn" style="display:none; margin-top:16px;">Publicar prova</button>
   </div>
 </div>
 
@@ -83,51 +55,90 @@
 import { setupThemeToggle } from "./theme.js";
 setupThemeToggle();
 
-import { ADMIN_PASSPHRASE } from "./firebase-config.js";
+import { OWNER_NAME } from "./firebase-config.js";
 import { addQuiz } from "./firebase-init.js";
 import { requireLogin, mountProfileChip } from "./auth.js";
 
 const myName = await requireLogin();
 mountProfileChip(myName);
 
-document.getElementById('unlock-btn').addEventListener('click', () => {
-  const val = document.getElementById('passphrase').value;
-  if(val === ADMIN_PASSPHRASE){
-    document.getElementById('gate').style.display = 'none';
-    document.getElementById('editor').style.display = 'block';
-  } else {
-    alert('Senha incorreta.');
-  }
-});
+const isOwner = myName.trim().toLowerCase() === OWNER_NAME.trim().toLowerCase();
+
+if(!isOwner){
+  document.getElementById('locked-message').style.display = 'block';
+} else {
+  document.getElementById('editor').style.display = 'block';
+}
 
 let parsedQuestions = null;
 
-document.getElementById('preview-btn').addEventListener('click', () => {
-  const raw = document.getElementById('quiz-json-input').value.trim();
+function escapeHtml(str){
+  const div = document.createElement('div');
+  div.textContent = str || '';
+  return div.innerHTML;
+}
+
+function handleFile(file){
   const previewBox = document.getElementById('preview-box');
-  try{
-    parsedQuestions = JSON.parse(raw);
-    if(!Array.isArray(parsedQuestions)) throw new Error('O JSON precisa ser uma lista de questões.');
+  const publishBtn = document.getElementById('publish-btn');
 
-    previewBox.innerHTML = '<h4>Pré-visualização (' + parsedQuestions.length + ' questões)</h4>' +
-      parsedQuestions.map((q, i) => `
-        <div style="padding:10px 0; border-bottom:1px solid var(--rule); font-family:'Helvetica Neue',Arial,sans-serif;">
-          <strong>Q${i+1} (${q.type}):</strong> ${escapeHtml(q.stem)}
-          ${q.options ? '<ul>' + q.options.map(o => `<li>${escapeHtml(o.label)}</li>`).join('') + '</ul>' : ''}
-        </div>
-      `).join('');
-
-    document.getElementById('publish-btn').style.display = 'inline-block';
-  }catch(err){
-    previewBox.innerHTML = '<p style="color:var(--bad); font-family:\'Helvetica Neue\',Arial,sans-serif;">JSON inválido: ' + err.message + '</p>';
-    document.getElementById('publish-btn').style.display = 'none';
+  if(!file){ return; }
+  if(!file.name.toLowerCase().endsWith('.json')){
+    previewBox.innerHTML = '<p style="color:var(--bad);">Isso não parece um arquivo .json. Selecione o arquivo certo.</p>';
+    publishBtn.style.display = 'none';
+    return;
   }
+
+  const reader = new FileReader();
+  reader.onload = (e) => {
+    document.getElementById('drop-zone-text').textContent = '✔ ' + file.name;
+    try{
+      parsedQuestions = JSON.parse(e.target.result);
+      if(!Array.isArray(parsedQuestions)) throw new Error('O arquivo precisa conter uma lista (array) de questões.');
+      if(parsedQuestions.length === 0) throw new Error('A lista de questões está vazia.');
+
+      previewBox.innerHTML = '<h4>Pré-visualização (' + parsedQuestions.length + ' questões)</h4>' +
+        parsedQuestions.map((q, i) => `
+          <div style="padding:10px 0; border-bottom:1px solid var(--rule); font-family:'Helvetica Neue',Arial,sans-serif;">
+            <strong>Q${i+1} (${escapeHtml(q.type || '?')} · ${escapeHtml(q.subject || 'geral')}):</strong> ${escapeHtml(q.stem || '(sem texto — verifique o arquivo)')}
+            ${q.options ? '<ul>' + q.options.map(o => `<li>${escapeHtml(o.label || '')}</li>`).join('') + '</ul>' : ''}
+          </div>
+        `).join('');
+
+      publishBtn.style.display = 'inline-block';
+    }catch(err){
+      previewBox.innerHTML = '<p style="color:var(--bad);">Arquivo JSON inválido: ' + escapeHtml(err.message) + '</p>';
+      publishBtn.style.display = 'none';
+      parsedQuestions = null;
+    }
+  };
+  reader.onerror = () => {
+    previewBox.innerHTML = '<p style="color:var(--bad);">Não foi possível ler o arquivo.</p>';
+  };
+  reader.readAsText(file);
+}
+
+const dropZone = document.getElementById('drop-zone');
+const fileInput = document.getElementById('quiz-file-input');
+
+dropZone.addEventListener('click', () => fileInput.click());
+fileInput.addEventListener('change', (e) => handleFile(e.target.files[0]));
+
+['dragover', 'dragleave', 'drop'].forEach(evt => {
+  dropZone.addEventListener(evt, (e) => e.preventDefault());
+});
+dropZone.addEventListener('dragover', () => dropZone.classList.add('drag-active'));
+dropZone.addEventListener('dragleave', () => dropZone.classList.remove('drag-active'));
+dropZone.addEventListener('drop', (e) => {
+  dropZone.classList.remove('drag-active');
+  const file = e.dataTransfer.files[0];
+  handleFile(file);
 });
 
 document.getElementById('publish-btn').addEventListener('click', async () => {
   const title = document.getElementById('quiz-title-input').value.trim();
   if(!title){ alert('Dê um título pra prova.'); return; }
-  if(!parsedQuestions){ alert('Pré-visualize antes de publicar.'); return; }
+  if(!parsedQuestions){ alert('Envie um arquivo válido primeiro.'); return; }
 
   const btn = document.getElementById('publish-btn');
   btn.disabled = true;
@@ -143,17 +154,11 @@ document.getElementById('publish-btn').addEventListener('click', async () => {
     window.location.href = 'provas.html';
   }catch(err){
     console.error(err);
-    alert('Erro ao publicar. Confira sua internet e tente de novo.');
+    alert('Erro ao publicar: ' + (err.message || String(err)));
     btn.disabled = false;
     btn.textContent = 'Publicar prova';
   }
 });
-
-function escapeHtml(str){
-  const div = document.createElement('div');
-  div.textContent = str || '';
-  return div.innerHTML;
-}
 </script>
 
 </body>

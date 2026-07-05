@@ -354,6 +354,26 @@ textarea{ min-height: 90px; resize:vertical; }
   padding: 24px;
 }
 
+.drop-zone{
+  border: 2px dashed var(--rule);
+  border-radius: 12px;
+  padding: 32px 20px;
+  text-align:center;
+  cursor: pointer;
+  transition: border-color 0.15s ease, background 0.15s ease;
+  margin-bottom: 8px;
+}
+.drop-zone:hover, .drop-zone.drag-active{
+  border-color: var(--accent);
+  background: var(--bg);
+}
+.drop-zone p{
+  margin:0;
+  color: var(--muted);
+  font-weight:600;
+  font-size:0.9rem;
+}
+
 table#history-table{
   width:100%;
   border-collapse: collapse;

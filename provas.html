@@ -58,7 +58,7 @@
   </div>
 
   <p style="text-align:center;">
-    <a href="nova-prova.html" class="btn secondary" style="font-size:0.8rem;">+ Criar nova prova (acesso restrito)</a>
+    <a href="nova-prova.html" class="btn secondary" style="font-size:0.8rem;" id="new-quiz-link">+ Criar nova prova</a>
   </p>
 </div>
 
@@ -67,11 +67,17 @@ import { setupThemeToggle } from "./theme.js";
 setupThemeToggle();
 
 import { requireLogin, mountProfileChip } from "./auth.js";
-import { listenQuizzes, listenQuizAttempts, listenWrongQuestions } from "./firebase-init.js";
+import { listenQuizzes, listenQuizAttempts, listenWrongQuestions, deleteQuiz } from "./firebase-init.js";
 import { SUBJECTS, subjectLabel } from "./subjects.js";
+import { OWNER_NAME } from "./firebase-config.js";
 
 const myName = await requireLogin();
 mountProfileChip(myName);
+const isOwner = myName.trim().toLowerCase() === OWNER_NAME.trim().toLowerCase();
+if(!isOwner){
+  const link = document.getElementById('new-quiz-link');
+  if(link) link.style.display = 'none';
+}
 let allAttempts = [];
 let latestQuizzes = [];
 let quizzesLoaded = false;
@@ -105,11 +111,29 @@ function renderQuizzes(){
             ${lastMine ? ` · sua última nota: <strong>${lastMine.correct}/${lastMine.total}</strong>` : ' · você ainda não fez'}
           </div>
         </div>
-        <a class="btn" href="prova-jogar.html?id=${q.id}">${lastMine ? 'Refazer' : 'Fazer'}</a>
+        <div style="display:flex; gap:8px; flex-shrink:0;">
+          <a class="btn" href="prova-jogar.html?id=${q.id}">${lastMine ? 'Refazer' : 'Fazer'}</a>
+          ${isOwner ? `<button class="btn danger" data-delete-quiz-id="${q.id}" title="Excluir prova">🗑️</button>` : ''}
+        </div>
       </div>
     `;
   }).join('');
 }
+
+document.getElementById('quiz-list').addEventListener('click', async (e) => {
+  const btn = e.target.closest('[data-delete-quiz-id]');
+  if(!btn) return;
+  if(!confirm('Excluir essa prova? Essa ação não pode ser desfeita (as tentativas já feitas continuam salvas no placar).')) return;
+
+  btn.disabled = true;
+  try{
+    await deleteQuiz(btn.dataset.deleteQuizId);
+  }catch(err){
+    console.error(err);
+    alert('Não foi possível excluir: ' + (err.message || String(err)));
+    btn.disabled = false;
+  }
+});
 
 function renderLeaderboard(){
   if(!attemptsLoaded) return;

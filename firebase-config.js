@@ -8,7 +8,6 @@ export const firebaseConfig = {
   appId: "1:590970002799:web:30641b5eb65ed2a8c55c9a"
 };
 
-// Frase secreta simples para liberar a criação de novas provas
-// (proteção leve — troque por algo só seu e do seu amigo saberem,
-// não é uma senha de verdade, qualquer um que veja o código-fonte consegue ver isso)
-export const ADMIN_PASSPHRASE = "quimica20";
+// Nome de quem é "dono" do site — só essa pessoa consegue criar/excluir provas.
+// IMPORTANTE: escreva EXATAMENTE igual ao nome que você usa pra entrar no site (mesma letra maiúscula/minúscula).
+export const OWNER_NAME = "Douglas";
