@@ -70,6 +70,11 @@ async function loadQuiz(id){
       document.getElementById('quiz-title').textContent = 'Prova não encontrada';
       return;
     }
+    if(!Array.isArray(quiz.questions) || quiz.questions.length === 0){
+      document.getElementById('quiz-title').textContent = quiz.title || 'Prova sem questões';
+      document.getElementById('quiz-subtitle').innerHTML = '<span style="color:var(--bad);">Essa prova não tem nenhuma questão cadastrada. Volte pra lista de provas.</span>';
+      return;
+    }
     // marca a origem de cada questão (pra banco de erradas funcionar igual no modo normal e aleatório)
     quiz.questions = quiz.questions.map(q => ({ ...q, sourceQuizId: quiz.id, sourceQuizTitle: quiz.title, subject: q.subject || 'geral' }));
     document.getElementById('quiz-title').textContent = quiz.title;
@@ -142,7 +147,7 @@ function renderForm(quiz){
         <span class="entry-date">Questão ${idx+1} · ${subjectLabel(q.subject)}</span>
         <p style="font-size:1.02rem;">${escapeHtml(q.stem)}</p>
         <div class="options">
-          ${q.options.map(opt => `
+          ${(q.options || []).map(opt => `
             <label style="display:flex; gap:10px; align-items:flex-start; padding:8px 10px; font-family:'Helvetica Neue',Arial,sans-serif; font-size:0.95rem; cursor:pointer;">
               <input type="radio" name="${q.id}" value="${opt.value}"> ${escapeHtml(opt.label)}
             </label>

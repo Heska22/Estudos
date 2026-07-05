@@ -101,7 +101,7 @@ function renderQuizzes(){
       <div class="quiz-list-item">
         <div>
           <p class="quiz-title">${escapeHtml(q.title)}</p>
-          <div class="quiz-meta">${new Date(q.dateCreated).toLocaleDateString('pt-BR')} · ${q.questions.length} questões
+          <div class="quiz-meta">${new Date(q.dateCreated).toLocaleDateString('pt-BR')} · ${(q.questions || []).length} questões
             ${lastMine ? ` · sua última nota: <strong>${lastMine.correct}/${lastMine.total}</strong>` : ' · você ainda não fez'}
           </div>
         </div>
