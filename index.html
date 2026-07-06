@@ -94,6 +94,7 @@ import { subjectLabel, subjectColor, SUBJECTS } from "./subjects.js";
 import { calculateStreak, calculateXP, getLevelProgress, calculateAchievements, calculateSubjectMinutes, getAvatarColor, getInitial } from "./gamification.js";
 import { enableLightbox } from "./lightbox.js";
 import { animateCountUp, animateBarFill, staggerFadeIn, popIn, confettiBurst } from "./animations.js";
+import { celebrationFeedback } from "./haptics.js";
 enableLightbox('#recent-entries');
 
 const myName = await requireLogin();
@@ -234,6 +235,8 @@ function celebrateNewAchievements(achievements){
 
   const newlyUnlocked = achievements.filter(a => a.unlocked && !celebrated.includes(a.id));
   if(newlyUnlocked.length === 0) return;
+
+  celebrationFeedback();
 
   newlyUnlocked.forEach((a, i) => {
     const el = document.querySelector(`.badge-item[data-achievement-id="${a.id}"]`);

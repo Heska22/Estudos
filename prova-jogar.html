@@ -46,6 +46,7 @@ setupThemeToggle();
 import { requireLogin, mountProfileChip } from "./auth.js";
 import { getQuizById, getAllQuizzesOnce, addQuizAttempt, upsertWrongQuestion, removeWrongQuestion } from "./firebase-init.js";
 import { subjectLabel } from "./subjects.js";
+import { successFeedback } from "./haptics.js";
 
 const myName = await requireLogin();
 mountProfileChip(myName);
@@ -243,6 +244,7 @@ async function onSubmit(e, quiz){
   document.getElementById('score-detail').textContent = myName + ', você acertou ' + percent + '% das questões objetivas.';
   document.getElementById('result-panel').style.display = 'block';
   document.getElementById('result-panel').scrollIntoView({behavior:'smooth'});
+  successFeedback();
 
   try{
     await addQuizAttempt({

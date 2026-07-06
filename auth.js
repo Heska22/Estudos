@@ -1,4 +1,5 @@
 import { getProfile, setProfile } from "./firebase-init.js";
+import { errorFeedback } from "./haptics.js";
 
 const SESSION_KEY = 'myName';
 const PHOTO_CACHE_KEY = 'myPhotoCache';
@@ -107,6 +108,7 @@ export function requireLogin(){
         if(profile){
           if(profile.password !== password){
             errorEl.textContent = 'Senha incorreta pra esse nome.';
+            errorFeedback();
             submitBtn.disabled = false;
             submitBtn.textContent = 'Entrar';
             return;

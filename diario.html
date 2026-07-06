@@ -93,6 +93,7 @@ import { requireLogin, mountProfileChip } from "./auth.js";
 import { addStudyEntry, updateStudyEntry, deleteStudyEntry, listenStudyEntries } from "./firebase-init.js";
 import { SUBJECTS, subjectLabel, subjectColor } from "./subjects.js";
 import { getAvatarColor } from "./gamification.js";
+import { successFeedback } from "./haptics.js";
 import { staggerFadeIn } from "./animations.js";
 import { enableLightbox } from "./lightbox.js";
 enableLightbox('#entries-list');
@@ -175,6 +176,7 @@ document.getElementById('entry-form').addEventListener('submit', async function(
       await addStudyEntry({ ...payload, author: myName, createdAt: Date.now() });
     }
     resetForm();
+    successFeedback();
   }catch(err){
     console.error(err);
     alert('Não foi possível salvar agora. Verifique sua internet e tente de novo.');

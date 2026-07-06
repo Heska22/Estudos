@@ -1,3 +1,5 @@
+import { enableGlobalTapFeedback } from "./haptics.js";
+
 export function initTheme(){
   const saved = localStorage.getItem('theme') || 'light';
   document.documentElement.setAttribute('data-theme', saved);
@@ -17,11 +19,17 @@ export function updateToggleIcon(theme){
   if(btn) btn.textContent = theme === 'dark' ? '☀️' : '🌙';
 }
 
+let tapFeedbackEnabled = false;
+
 export function setupThemeToggle(){
   const theme = initTheme();
   updateToggleIcon(theme);
   const btn = document.getElementById('theme-toggle');
   if(btn){
     btn.addEventListener('click', toggleTheme);
+  }
+  if(!tapFeedbackEnabled){
+    enableGlobalTapFeedback();
+    tapFeedbackEnabled = true;
   }
 }

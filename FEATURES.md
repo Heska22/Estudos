@@ -18,7 +18,8 @@ Este arquivo é a fonte de verdade sobre o que existe no site. Sempre que pedir 
 - `gamification.js` — Streak, XP, nível, conquistas, cor/inicial de avatar
 - `auth.js` — Login (nome + senha + foto), sessão salva no aparelho, chip de perfil na navbar
 - `lightbox.js` — Visualizador de foto em tela cheia (clique pra ampliar)
-- `animations.js` — Animações com Anime.js (barras, contadores, listas, conquistas)
+- `animations.js` — Animações com Anime.js (barras, contadores, listas, conquistas, confete)
+- `haptics.js` — Vibração tátil em celular (toque em botão, salvar, acertar/errar, conquista)
 - `firebase-config.js` — Credenciais do Firebase + nome do dono do site
 - `firebase-init.js` — Funções de acesso ao Firestore (ler/gravar dados)
 - `prova-exemplo-1.json` — Conteúdo da primeira prova (com campo "subject" em cada questão)
@@ -61,6 +62,11 @@ Estatística por matéria nas provas, banco de questões erradas (`revisao.html`
 - **Botões** com feedback mais satisfatório ao passar o mouse/clicar
 - **Brilho animado** (shine) passando pelas barras de XP e de matéria continuamente
 - **Página aparece com fade suave** ao carregar, em vez de "piscar" tudo de uma vez
+
+### ✅ Implementado (Lote 7 — polimento mobile)
+- **Feedback ao toque** em cards, botões, fotos e conquistas (antes só funcionava com mouse/hover, agora funciona igual encostando o dedo)
+- **Vibração tátil (haptics)** em celular: toque leve em qualquer botão, vibração de sucesso ao salvar registro/prova/acertar revisão, vibração de erro ao errar senha ou questão de revisão, vibração comemorativa ao desbloquear conquista
+- Removido o "flash azul" padrão do navegador ao tocar em botões/links (visual mais nativo)
 
 ### 🔜 Planejado (ainda não implementado)
 - PWA (instalar como app no celular)

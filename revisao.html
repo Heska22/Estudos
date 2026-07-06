@@ -37,6 +37,7 @@ setupThemeToggle();
 import { requireLogin, mountProfileChip } from "./auth.js";
 import { listenWrongQuestions, removeWrongQuestion } from "./firebase-init.js";
 import { SUBJECTS, subjectLabel, subjectColor } from "./subjects.js";
+import { successFeedback, errorFeedback } from "./haptics.js";
 
 const myName = await requireLogin();
 mountProfileChip(myName);
@@ -107,6 +108,7 @@ document.getElementById('wrong-list').addEventListener('click', async (e) => {
   const item = myWrongItems.find(i => i.id === itemId);
   if(selected.value === correct){
     fb.innerHTML = '<span style="color:var(--ok); font-size:0.85rem;">✔ Correto! Removendo da revisão...</span>';
+    successFeedback();
     btn.disabled = true;
     try{
       await removeWrongQuestion(myName, item.sourceQuizId, item.questionId);
@@ -115,6 +117,7 @@ document.getElementById('wrong-list').addEventListener('click', async (e) => {
     }
   } else {
     fb.innerHTML = '<span style="color:var(--bad); font-size:0.85rem;">✘ Ainda não é essa. Continue tentando!</span>';
+    errorFeedback();
   }
 });
 
