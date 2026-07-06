@@ -101,6 +101,11 @@ header.page-header p{
   padding: 22px 24px;
   margin-bottom: 18px;
   box-shadow: 0 1px 2px rgba(31,34,37,0.04), 0 8px 24px -12px rgba(31,34,37,0.08);
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+.card:hover{
+  transform: translateY(-3px);
+  box-shadow: 0 4px 10px rgba(31,34,37,0.06), 0 16px 32px -14px rgba(31,34,37,0.14);
 }
 .card h3{
   font-family: "Fraunces", serif;
@@ -159,10 +164,10 @@ header.page-header p{
   cursor: pointer;
   text-decoration:none;
   display:inline-block;
-  transition: transform 0.1s ease, opacity 0.15s ease;
+  transition: transform 0.15s cubic-bezier(.2,.8,.3,1.4), opacity 0.15s ease, box-shadow 0.15s ease;
 }
-.btn:hover{ opacity:0.92; }
-.btn:active{ transform: scale(0.98); }
+.btn:hover{ opacity:0.92; transform: translateY(-1px); box-shadow: 0 4px 12px -4px rgba(31,34,37,0.35); }
+.btn:active{ transform: scale(0.96) translateY(0); box-shadow: none; }
 .btn.secondary{
   background: transparent;
   color: var(--ink);
@@ -493,7 +498,20 @@ table#history-table tr:last-child td{ border-bottom:none; }
   height:100%;
   background: linear-gradient(90deg, var(--accent), #d97a48);
   border-radius: 999px;
-  transition: width 0.3s ease;
+  position: relative;
+  overflow: hidden;
+}
+.xp-bar-fill::after{
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(100deg, transparent 30%, rgba(255,255,255,0.55) 50%, transparent 70%);
+  background-size: 200% 100%;
+  animation: shine-sweep 2.6s ease-in-out infinite;
+}
+@keyframes shine-sweep{
+  0%{ background-position: 160% 0; }
+  100%{ background-position: -60% 0; }
 }
 .xp-detail{
   font-size: 0.78rem;
@@ -514,12 +532,17 @@ table#history-table tr:last-child td{ border-bottom:none; }
   border: 1px solid var(--rule);
   opacity: 0.35;
   filter: grayscale(1);
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
 }
 .badge-item.unlocked{
   opacity:1;
   filter:none;
   background: linear-gradient(180deg, var(--paper), var(--bg));
   border-color: var(--accent);
+}
+.badge-item.unlocked:hover{
+  transform: translateY(-3px) scale(1.03);
+  box-shadow: 0 10px 20px -10px rgba(179,80,47,0.4);
 }
 .badge-item .badge-emoji{ font-size: 1.7rem; display:block; margin-bottom:6px; }
 .badge-item .badge-name{ font-size: 0.72rem; font-weight:700; }
@@ -546,6 +569,16 @@ table#history-table tr:last-child td{ border-bottom:none; }
 .subject-bar-fill{
   height:100%;
   border-radius: 999px;
+  position: relative;
+  overflow: hidden;
+}
+.subject-bar-fill::after{
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(100deg, transparent 30%, rgba(255,255,255,0.45) 50%, transparent 70%);
+  background-size: 200% 100%;
+  animation: shine-sweep 3.2s ease-in-out infinite;
 }
 .subject-bar-value{
   width: 60px;
@@ -553,4 +586,25 @@ table#history-table tr:last-child td{ border-bottom:none; }
   font-size: 0.76rem;
   color: var(--muted);
   flex-shrink:0;
+}
+
+/* Página aparecendo suavemente ao carregar */
+body{
+  animation: page-fade-in 0.4s ease both;
+}
+@keyframes page-fade-in{
+  from{ opacity: 0; }
+  to{ opacity: 1; }
+}
+
+/* Confete (usado via JS em animations.js) */
+.confetti-piece{
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 8px;
+  height: 8px;
+  pointer-events: none;
+  z-index: 9997;
+  border-radius: 2px;
 }

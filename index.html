@@ -93,7 +93,7 @@ import { listenStudyEntries, listenQuizAttempts } from "./firebase-init.js";
 import { subjectLabel, subjectColor, SUBJECTS } from "./subjects.js";
 import { calculateStreak, calculateXP, getLevelProgress, calculateAchievements, calculateSubjectMinutes, getAvatarColor, getInitial } from "./gamification.js";
 import { enableLightbox } from "./lightbox.js";
-import { animateCountUp, animateBarFill, staggerFadeIn, popIn } from "./animations.js";
+import { animateCountUp, animateBarFill, staggerFadeIn, popIn, confettiBurst } from "./animations.js";
 enableLightbox('#recent-entries');
 
 const myName = await requireLogin();
@@ -218,12 +218,32 @@ function renderPersonalProgress(){
 
   const achievements = calculateAchievements(allEntries, allAttempts, myName, streak);
   document.getElementById('badges-grid').innerHTML = achievements.map(a => `
-    <div class="badge-item ${a.unlocked ? 'unlocked' : ''}">
+    <div class="badge-item ${a.unlocked ? 'unlocked' : ''}" data-achievement-id="${a.id}">
       <span class="badge-emoji">${a.emoji}</span>
       <span class="badge-name">${a.name}</span>
     </div>
   `).join('');
   popIn('#badges-grid .badge-item.unlocked');
+  celebrateNewAchievements(achievements);
+}
+
+function celebrateNewAchievements(achievements){
+  const storageKey = 'celebratedAchievements:' + myName;
+  let celebrated = [];
+  try{ celebrated = JSON.parse(localStorage.getItem(storageKey) || '[]'); }catch(e){ celebrated = []; }
+
+  const newlyUnlocked = achievements.filter(a => a.unlocked && !celebrated.includes(a.id));
+  if(newlyUnlocked.length === 0) return;
+
+  newlyUnlocked.forEach((a, i) => {
+    const el = document.querySelector(`.badge-item[data-achievement-id="${a.id}"]`);
+    if(el){
+      setTimeout(() => confettiBurst(el), i * 250);
+    }
+  });
+
+  const updated = [...celebrated, ...newlyUnlocked.map(a => a.id)];
+  localStorage.setItem(storageKey, JSON.stringify(updated));
 }
 
 function renderSubjectChart(){

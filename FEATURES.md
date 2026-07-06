@@ -55,6 +55,13 @@ Estatística por matéria nas provas, banco de questões erradas (`revisao.html`
 - **Anime.js** (`animations.js`, via CDN) dando movimento a: barra de XP enchendo, streak contando, gráficos de matéria crescendo, conquistas "pipocando" ao desbloquear, listas (diário, provas, mural) aparecendo em sequência suave
 - Resiliente: se o CDN do Anime.js falhar, o site continua funcionando normalmente, só sem os efeitos
 
+### ✅ Implementado (Lote 6 — polimento visual)
+- **Confete** 🎉 quando uma conquista é desbloqueada pela primeira vez (só dispara uma vez por conquista, guardado no aparelho)
+- **Cards "levantam"** suavemente ao passar o mouse (sombra mais forte)
+- **Botões** com feedback mais satisfatório ao passar o mouse/clicar
+- **Brilho animado** (shine) passando pelas barras de XP e de matéria continuamente
+- **Página aparece com fade suave** ao carregar, em vez de "piscar" tudo de uma vez
+
 ### 🔜 Planejado (ainda não implementado)
 - PWA (instalar como app no celular)
 - Editar uma prova já publicada (hoje só dá pra criar ou excluir)

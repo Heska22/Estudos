@@ -67,3 +67,49 @@ export function popIn(selector, opts = {}){
     ease: 'outElastic(1, .6)'
   });
 }
+
+// Solta confete a partir de um elemento (ex: uma conquista recém-desbloqueada)
+const CONFETTI_COLORS = ['#b3502f', '#2f6f5e', '#7a4f9e', '#d6a13a', '#3b8a7a'];
+
+export function confettiBurst(originEl, opts = {}){
+  if(!originEl) return;
+  const rect = originEl.getBoundingClientRect();
+  const originX = rect.left + rect.width / 2;
+  const originY = rect.top + rect.height / 2;
+  const count = opts.count || 26;
+  const pieces = [];
+
+  for(let i = 0; i < count; i++){
+    const piece = document.createElement('div');
+    piece.className = 'confetti-piece';
+    piece.style.background = CONFETTI_COLORS[i % CONFETTI_COLORS.length];
+    piece.style.left = originX + 'px';
+    piece.style.top = originY + 'px';
+    document.body.appendChild(piece);
+    pieces.push(piece);
+  }
+
+  if(!animate){
+    // sem Anime.js: só remove depois de um tempinho, sem animar
+    setTimeout(() => pieces.forEach(p => p.remove()), 900);
+    return;
+  }
+
+  pieces.forEach((piece) => {
+    const angle = Math.random() * Math.PI * 2;
+    const distance = 80 + Math.random() * 120;
+    const endX = originX + Math.cos(angle) * distance;
+    const endY = originY + Math.sin(angle) * distance + 60; // um empurrão pra baixo, tipo gravidade
+
+    animate(piece, {
+      left: [originX, endX],
+      top: [originY, endY],
+      rotate: [0, (Math.random() > 0.5 ? 1 : -1) * (180 + Math.random() * 360)],
+      opacity: [1, 1, 0],
+      scale: [1, 1, 0.4],
+      duration: 900 + Math.random() * 500,
+      ease: 'outCubic',
+      onComplete: () => piece.remove()
+    });
+  });
+}
