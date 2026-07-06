@@ -93,6 +93,7 @@ import { requireLogin, mountProfileChip } from "./auth.js";
 import { addStudyEntry, updateStudyEntry, deleteStudyEntry, listenStudyEntries } from "./firebase-init.js";
 import { SUBJECTS, subjectLabel, subjectColor } from "./subjects.js";
 import { getAvatarColor } from "./gamification.js";
+import { staggerFadeIn } from "./animations.js";
 import { enableLightbox } from "./lightbox.js";
 enableLightbox('#entries-list');
 
@@ -284,6 +285,7 @@ function renderEntries(){
       `).join('')}
     </div>
   `).join('');
+  staggerFadeIn('#entries-list .entry');
 }
 
 document.getElementById('entries-list').addEventListener('click', async (e) => {

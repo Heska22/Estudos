@@ -69,6 +69,7 @@ setupThemeToggle();
 import { requireLogin, mountProfileChip } from "./auth.js";
 import { listenQuizzes, listenQuizAttempts, listenWrongQuestions, deleteQuiz } from "./firebase-init.js";
 import { SUBJECTS, subjectLabel } from "./subjects.js";
+import { staggerFadeIn, animateBarFill } from "./animations.js";
 import { OWNER_NAME } from "./firebase-config.js";
 
 const myName = await requireLogin();
@@ -118,6 +119,7 @@ function renderQuizzes(){
       </div>
     `;
   }).join('');
+  staggerFadeIn('#quiz-list .quiz-list-item');
 }
 
 document.getElementById('quiz-list').addEventListener('click', async (e) => {
@@ -190,10 +192,13 @@ function renderSubjectAccuracy(){
   box.innerHTML = rows.map(r => `
     <div class="subject-bar-row">
       <div class="subject-bar-label">${escapeHtml(subjectLabel(r.subject))}</div>
-      <div class="subject-bar-track"><div class="subject-bar-fill" style="width:${r.pct}%; background:${r.pct >= 70 ? 'var(--ok)' : r.pct >= 40 ? '#d6a13a' : 'var(--bad)'};"></div></div>
+      <div class="subject-bar-track"><div class="subject-bar-fill" data-target="${r.pct}" style="background:${r.pct >= 70 ? 'var(--ok)' : r.pct >= 40 ? '#d6a13a' : 'var(--bad)'};"></div></div>
       <div class="subject-bar-value">${r.pct}% (${r.total})</div>
     </div>
   `).join('');
+  document.querySelectorAll('#subject-accuracy .subject-bar-fill').forEach((el, i) => {
+    animateBarFill(el, el.dataset.target, { delay: i * 60 });
+  });
 }
 
 function renderWrongCount(count){

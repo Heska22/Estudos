@@ -93,6 +93,7 @@ import { listenStudyEntries, listenQuizAttempts } from "./firebase-init.js";
 import { subjectLabel, subjectColor, SUBJECTS } from "./subjects.js";
 import { calculateStreak, calculateXP, getLevelProgress, calculateAchievements, calculateSubjectMinutes, getAvatarColor, getInitial } from "./gamification.js";
 import { enableLightbox } from "./lightbox.js";
+import { animateCountUp, animateBarFill, staggerFadeIn, popIn } from "./animations.js";
 enableLightbox('#recent-entries');
 
 const myName = await requireLogin();
@@ -183,6 +184,7 @@ function render(){
         </div>
       </div>
     `).join('');
+    staggerFadeIn('#recent-entries .entry');
   }
 
   const lastQuizzesBox = document.getElementById('last-quizzes');
@@ -198,6 +200,7 @@ function render(){
         <strong>${a.correct}/${a.total} (${a.percent}%)</strong>
       </div>
     `).join('');
+    staggerFadeIn('#last-quizzes .quiz-list-item');
   }
 }
 
@@ -206,10 +209,10 @@ function renderPersonalProgress(){
   const xp = calculateXP(allEntries, allAttempts, myName);
   const { level, currentLevelXp, nextLevelXp, progressPercent } = getLevelProgress(xp);
 
-  document.getElementById('streak-num').textContent = streak;
+  animateCountUp(document.getElementById('streak-num'), streak);
   document.getElementById('streak-emoji').style.opacity = streak > 0 ? '1' : '0.3';
   document.getElementById('level-num').textContent = level;
-  document.getElementById('xp-bar-fill').style.width = progressPercent + '%';
+  animateBarFill(document.getElementById('xp-bar-fill'), progressPercent);
   document.getElementById('xp-detail').textContent =
     `${xp} XP · faltam ${Math.max(nextLevelXp - xp, 0)} XP pro nível ${level + 1}`;
 
@@ -220,6 +223,7 @@ function renderPersonalProgress(){
       <span class="badge-name">${a.name}</span>
     </div>
   `).join('');
+  popIn('#badges-grid .badge-item.unlocked');
 }
 
 function renderSubjectChart(){
@@ -242,11 +246,15 @@ function renderSubjectChart(){
     return `
       <div class="subject-bar-row">
         <div class="subject-bar-label">${s.label}</div>
-        <div class="subject-bar-track"><div class="subject-bar-fill" style="width:${pct}%; background:${s.color};"></div></div>
+        <div class="subject-bar-track"><div class="subject-bar-fill" data-target="${pct}" style="background:${s.color};"></div></div>
         <div class="subject-bar-value">${val} min</div>
       </div>
     `;
   }).join('');
+
+  document.querySelectorAll('#subject-chart .subject-bar-fill').forEach((el, i) => {
+    animateBarFill(el, el.dataset.target, { delay: i * 60 });
+  });
 }
 
 function renderReviewSuggestions(){

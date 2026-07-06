@@ -18,6 +18,7 @@ Este arquivo é a fonte de verdade sobre o que existe no site. Sempre que pedir 
 - `gamification.js` — Streak, XP, nível, conquistas, cor/inicial de avatar
 - `auth.js` — Login (nome + senha + foto), sessão salva no aparelho, chip de perfil na navbar
 - `lightbox.js` — Visualizador de foto em tela cheia (clique pra ampliar)
+- `animations.js` — Animações com Anime.js (barras, contadores, listas, conquistas)
 - `firebase-config.js` — Credenciais do Firebase + nome do dono do site
 - `firebase-init.js` — Funções de acesso ao Firestore (ler/gravar dados)
 - `prova-exemplo-1.json` — Conteúdo da primeira prova (com campo "subject" em cada questão)
@@ -49,6 +50,10 @@ Estatística por matéria nas provas, banco de questões erradas (`revisao.html`
 - **Upload de arquivo `.json`** em `nova-prova.html` (arrastar ou selecionar), com preview automático — resolve o problema de colar texto pela metade
 - **Excluir prova** — botão 🗑️ na lista, só visível pro dono
 - Aviso claro de acesso restrito pra quem não é o dono
+
+### ✅ Implementado (Lote 5 — animações)
+- **Anime.js** (`animations.js`, via CDN) dando movimento a: barra de XP enchendo, streak contando, gráficos de matéria crescendo, conquistas "pipocando" ao desbloquear, listas (diário, provas, mural) aparecendo em sequência suave
+- Resiliente: se o CDN do Anime.js falhar, o site continua funcionando normalmente, só sem os efeitos
 
 ### 🔜 Planejado (ainda não implementado)
 - PWA (instalar como app no celular)

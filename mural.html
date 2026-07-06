@@ -49,6 +49,7 @@ setupThemeToggle();
 import { requireLogin, mountProfileChip } from "./auth.js";
 import { addMessage, listenMessages, listenStudyEntries, listenQuizAttempts } from "./firebase-init.js";
 import { getAvatarColor, getInitial } from "./gamification.js";
+import { staggerFadeIn } from "./animations.js";
 
 const myName = await requireLogin();
 mountProfileChip(myName);
@@ -107,6 +108,7 @@ listenMessages(
         </div>
       </div>
     `).join('');
+    staggerFadeIn('#messages-list .card');
   },
   (err) => {
     document.getElementById('messages-list').innerHTML = `
