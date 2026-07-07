@@ -30,9 +30,9 @@
   <div class="card" style="display:flex; gap:14px; flex-wrap:wrap; align-items:center; justify-content:space-between;">
     <div>
       <p class="quiz-title" style="margin:0 0 4px;">🎲 Prova Aleatória</p>
-      <div class="quiz-meta" id="random-quiz-meta">Mistura questões das provas que você já fez · não conta pro placar geral, é só revisão · só dá pra fazer 1 vez</div>
+      <div class="quiz-meta" id="random-quiz-meta">Mistura questões das provas que você já fez</div>
     </div>
-    <div id="random-quiz-action"><a href="prova-jogar.html?random=1&n=15" class="btn" id="random-quiz-link">Sortear 15 questões</a></div>
+    <a href="prova-jogar.html?random=1&n=15" class="btn" id="random-quiz-link">Sortear 15 questões</a>
   </div>
 
   <div class="card" style="display:flex; gap:14px; flex-wrap:wrap; align-items:center; justify-content:space-between;">
@@ -96,16 +96,6 @@ function attemptsFor(quizId){
 // servem só de revisão pessoal. Filtramos elas fora de qualquer cálculo de ranking.
 function scoringAttempts(){
   return allAttempts.filter(a => !a.isRandom);
-}
-function renderRandomQuizState(){
-  if(!attemptsLoaded) return;
-  const alreadyDone = allAttempts.some(a => a.author === myName && a.isRandom);
-  const box = document.getElementById('random-quiz-action');
-  if(alreadyDone){
-    box.innerHTML = '<span style="font-size:0.85rem; color:var(--muted); font-weight:600;">✔ Você já fez (só é permitida 1 vez)</span>';
-  } else {
-    box.innerHTML = '<a href="prova-jogar.html?random=1&n=15" class="btn" id="random-quiz-link">Sortear 15 questões</a>';
-  }
 }
 
 function renderQuizzes(){
@@ -242,7 +232,7 @@ listenQuizzes(
   }
 );
 listenQuizAttempts(
-  (attempts) => { allAttempts = attempts; attemptsLoaded = true; renderQuizzes(); renderLeaderboard(); renderSubjectAccuracy(); renderRandomQuizState(); },
+  (attempts) => { allAttempts = attempts; attemptsLoaded = true; renderQuizzes(); renderLeaderboard(); renderSubjectAccuracy(); },
   (err) => {
     document.getElementById('leaderboard').innerHTML = `
       <div class="error-state">Não consegui carregar o placar.<br>Erro técnico: ${escapeHtml(err.message || String(err))}</div>`;
