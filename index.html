@@ -319,7 +319,9 @@ listenStudyEntries(
   (err) => { showErrorBox('recent-entries', err); }
 );
 listenQuizAttempts(
-  (attempts) => { allAttempts = attempts; attemptsLoaded = true; render(); },
+  // Tentativas da Prova Aleatória são só revisão pessoal: não contam pra XP, conquistas,
+  // estatísticas nem últimas provas feitas.
+  (attempts) => { allAttempts = attempts.filter(a => !a.isRandom); attemptsLoaded = true; render(); },
   (err) => { showErrorBox('last-quizzes', err); }
 );
 </script>

@@ -30,9 +30,9 @@
   <div class="card" style="display:flex; gap:14px; flex-wrap:wrap; align-items:center; justify-content:space-between;">
     <div>
       <p class="quiz-title" style="margin:0 0 4px;">🎲 Prova Aleatória</p>
-      <div class="quiz-meta">Mistura questões de todas as provas já criadas</div>
+      <div class="quiz-meta" id="random-quiz-meta">Mistura questões das provas que você já fez · não conta pro placar geral, é só revisão · só dá pra fazer 1 vez</div>
     </div>
-    <a href="prova-jogar.html?random=1&n=15" class="btn">Sortear 15 questões</a>
+    <div id="random-quiz-action"><a href="prova-jogar.html?random=1&n=15" class="btn" id="random-quiz-link">Sortear 15 questões</a></div>
   </div>
 
   <div class="card" style="display:flex; gap:14px; flex-wrap:wrap; align-items:center; justify-content:space-between;">
@@ -92,6 +92,21 @@ function escapeHtml(str){
 function attemptsFor(quizId){
   return allAttempts.filter(a => a.quizId === quizId);
 }
+// Tentativas da Prova Aleatória não contam pro placar geral nem pra precisão por matéria —
+// servem só de revisão pessoal. Filtramos elas fora de qualquer cálculo de ranking.
+function scoringAttempts(){
+  return allAttempts.filter(a => !a.isRandom);
+}
+function renderRandomQuizState(){
+  if(!attemptsLoaded) return;
+  const alreadyDone = allAttempts.some(a => a.author === myName && a.isRandom);
+  const box = document.getElementById('random-quiz-action');
+  if(alreadyDone){
+    box.innerHTML = '<span style="font-size:0.85rem; color:var(--muted); font-weight:600;">✔ Você já fez (só é permitida 1 vez)</span>';
+  } else {
+    box.innerHTML = '<a href="prova-jogar.html?random=1&n=15" class="btn" id="random-quiz-link">Sortear 15 questões</a>';
+  }
+}
 
 function renderQuizzes(){
   if(!quizzesLoaded) return;
@@ -104,16 +119,21 @@ function renderQuizzes(){
     const attempts = attemptsFor(q.id);
     const mine = attempts.filter(a => a.author === myName);
     const lastMine = mine.sort((a,b) => new Date(b.date) - new Date(a.date))[0];
+    const isLocked = q.availableAt && new Date(q.availableAt) > new Date();
+    const lockedLabel = isLocked ? `🔒 Disponível a partir de ${new Date(q.availableAt).toLocaleString('pt-BR', {dateStyle:'short', timeStyle:'short'})}` : '';
     return `
       <div class="quiz-list-item">
         <div>
           <p class="quiz-title">${escapeHtml(q.title)}</p>
           <div class="quiz-meta">${new Date(q.dateCreated).toLocaleDateString('pt-BR')} · ${(q.questions || []).length} questões
-            ${lastMine ? ` · sua última nota: <strong>${lastMine.correct}/${lastMine.total}</strong>` : ' · você ainda não fez'}
+            ${isLocked ? ` · ${lockedLabel}` : (lastMine ? ` · sua última nota: <strong>${lastMine.correct}/${lastMine.total}</strong>` : ' · você ainda não fez')}
           </div>
         </div>
         <div style="display:flex; gap:8px; flex-shrink:0;">
-          <a class="btn" href="prova-jogar.html?id=${q.id}">${lastMine ? 'Refazer' : 'Fazer'}</a>
+          ${isLocked
+            ? `<button class="btn secondary" disabled style="opacity:0.5; cursor:not-allowed;">🔒 Bloqueada</button>`
+            : `<a class="btn" href="prova-jogar.html?id=${q.id}">${lastMine ? 'Refazer' : 'Fazer'}</a>`
+          }
           ${isOwner ? `<button class="btn danger" data-delete-quiz-id="${q.id}" title="Excluir prova">🗑️</button>` : ''}
         </div>
       </div>
@@ -140,12 +160,13 @@ document.getElementById('quiz-list').addEventListener('click', async (e) => {
 function renderLeaderboard(){
   if(!attemptsLoaded) return;
   const box = document.getElementById('leaderboard');
-  if(allAttempts.length === 0){
+  const attemptsForBoard = scoringAttempts();
+  if(attemptsForBoard.length === 0){
     box.innerHTML = '<p class="empty-state">Ninguém fez nenhuma prova ainda.</p>';
     return;
   }
   const byAuthor = {};
-  allAttempts.forEach(a => {
+  attemptsForBoard.forEach(a => {
     if(!byAuthor[a.author]) byAuthor[a.author] = { attempts: 0, totalPercent: 0 };
     byAuthor[a.author].attempts++;
     byAuthor[a.author].totalPercent += a.percent;
@@ -164,7 +185,7 @@ function renderLeaderboard(){
 function renderSubjectAccuracy(){
   if(!attemptsLoaded) return;
   const box = document.getElementById('subject-accuracy');
-  const myAttempts = allAttempts.filter(a => a.author === myName && Array.isArray(a.answers));
+  const myAttempts = scoringAttempts().filter(a => a.author === myName && Array.isArray(a.answers));
 
   if(myAttempts.length === 0){
     box.innerHTML = '<p class="empty-state">Faça provas com o campo de matéria preenchido pra ver sua precisão aqui.</p>';
@@ -221,7 +242,7 @@ listenQuizzes(
   }
 );
 listenQuizAttempts(
-  (attempts) => { allAttempts = attempts; attemptsLoaded = true; renderQuizzes(); renderLeaderboard(); renderSubjectAccuracy(); },
+  (attempts) => { allAttempts = attempts; attemptsLoaded = true; renderQuizzes(); renderLeaderboard(); renderSubjectAccuracy(); renderRandomQuizState(); },
   (err) => {
     document.getElementById('leaderboard').innerHTML = `
       <div class="error-state">Não consegui carregar o placar.<br>Erro técnico: ${escapeHtml(err.message || String(err))}</div>`;

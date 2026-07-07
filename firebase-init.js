@@ -93,6 +93,12 @@ export async function deleteQuiz(id){
 export async function addQuizAttempt(attempt){
   await addDoc(collection(db, "quizAttempts"), attempt);
 }
+export async function getAllQuizAttemptsOnce(){
+  const snap = await getDocs(collection(db, "quizAttempts"));
+  const attempts = [];
+  snap.forEach(d => attempts.push({ id: d.id, ...d.data() }));
+  return attempts;
+}
 export function listenQuizAttempts(callback, onError){
   const q = query(collection(db, "quizAttempts"), orderBy("date", "desc"));
   return onSnapshot(q, (snap) => {

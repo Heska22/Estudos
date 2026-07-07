@@ -39,6 +39,10 @@
     <label class="field-label">Título da prova</label>
     <input type="text" id="quiz-title-input" placeholder="Ex: Prova 2 — Fim de semana 11/07">
 
+    <label class="field-label">Liberar a partir de (opcional)</label>
+    <input type="datetime-local" id="quiz-available-input">
+    <p style="font-size:0.8rem; color:var(--muted); margin:-12px 0 18px;">Deixe em branco pra liberar assim que publicar. Se preencher, a prova aparece na lista mas só pode ser feita a partir dessa data/hora.</p>
+
     <label class="field-label">Arquivo da prova (.json)</label>
     <div id="drop-zone" class="drop-zone">
       <input type="file" id="quiz-file-input" accept=".json,application/json" style="display:none;">
@@ -140,6 +144,9 @@ document.getElementById('publish-btn').addEventListener('click', async () => {
   if(!title){ alert('Dê um título pra prova.'); return; }
   if(!parsedQuestions){ alert('Envie um arquivo válido primeiro.'); return; }
 
+  const availableInput = document.getElementById('quiz-available-input').value;
+  const availableAt = availableInput ? new Date(availableInput).toISOString() : null;
+
   const btn = document.getElementById('publish-btn');
   btn.disabled = true;
   btn.textContent = 'Publicando...';
@@ -148,6 +155,7 @@ document.getElementById('publish-btn').addEventListener('click', async () => {
     await addQuiz({
       title: title,
       dateCreated: new Date().toISOString(),
+      availableAt: availableAt,
       questions: parsedQuestions
     });
     alert('Prova publicada! Já vai aparecer na aba Provas.');

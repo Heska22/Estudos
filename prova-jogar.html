@@ -44,7 +44,7 @@ import { setupThemeToggle } from "./theme.js";
 setupThemeToggle();
 
 import { requireLogin, mountProfileChip } from "./auth.js";
-import { getQuizById, getAllQuizzesOnce, addQuizAttempt, upsertWrongQuestion, removeWrongQuestion } from "./firebase-init.js";
+import { getQuizById, getAllQuizzesOnce, getAllQuizAttemptsOnce, addQuizAttempt, upsertWrongQuestion, removeWrongQuestion } from "./firebase-init.js";
 import { subjectLabel } from "./subjects.js";
 import { successFeedback } from "./haptics.js";
 
@@ -76,6 +76,11 @@ async function loadQuiz(id){
       document.getElementById('quiz-subtitle').innerHTML = '<span style="color:var(--bad);">Essa prova não tem nenhuma questão cadastrada. Volte pra lista de provas.</span>';
       return;
     }
+    if(quiz.availableAt && new Date(quiz.availableAt) > new Date()){
+      document.getElementById('quiz-title').textContent = quiz.title || 'Prova bloqueada';
+      document.getElementById('quiz-subtitle').innerHTML = '<span style="color:var(--bad);">🔒 Essa prova ainda não está disponível. Libera em ' + new Date(quiz.availableAt).toLocaleString('pt-BR', {dateStyle:'short', timeStyle:'short'}) + '.</span>';
+      return;
+    }
     // marca a origem de cada questão (pra banco de erradas funcionar igual no modo normal e aleatório)
     quiz.questions = quiz.questions.map(q => ({ ...q, sourceQuizId: quiz.id, sourceQuizTitle: quiz.title, subject: q.subject || 'geral' }));
     document.getElementById('quiz-title').textContent = quiz.title;
@@ -90,9 +95,28 @@ async function loadQuiz(id){
 
 async function loadRandomQuiz(){
   try{
+    const allAttemptsOnce = await getAllQuizAttemptsOnce();
+    const alreadyDoneRandom = allAttemptsOnce.some(a => a.author === myName && a.isRandom);
+    if(alreadyDoneRandom){
+      document.getElementById('quiz-title').textContent = 'Prova Aleatória já feita';
+      document.getElementById('quiz-subtitle').innerHTML = 'Você já fez sua Prova Aleatória — ela só pode ser feita <strong>uma vez</strong>. <a href="provas.html">Voltar para provas</a>.';
+      return;
+    }
+
+    // só entram no sorteio questões de provas que a própria pessoa já fez antes
+    const doneQuizIds = new Set(
+      allAttemptsOnce.filter(a => a.author === myName && !a.isRandom).map(a => a.quizId)
+    );
+
+    if(doneQuizIds.size === 0){
+      document.getElementById('quiz-title').textContent = 'Faça uma prova normal primeiro';
+      document.getElementById('quiz-subtitle').innerHTML = 'A Prova Aleatória só sorteia questões de provas que você já fez. <a href="provas.html">Escolha uma prova pra começar</a>.';
+      return;
+    }
+
     const allQuizzes = await getAllQuizzesOnce();
     let pool = [];
-    allQuizzes.forEach(q => {
+    allQuizzes.filter(q => doneQuizIds.has(q.id)).forEach(q => {
       (q.questions || []).forEach(question => {
         if(question.type !== 'discursive'){
           pool.push({ ...question, sourceQuizId: q.id, sourceQuizTitle: q.title, subject: question.subject || 'geral' });
@@ -102,7 +126,7 @@ async function loadRandomQuiz(){
 
     if(pool.length === 0){
       document.getElementById('quiz-title').textContent = 'Ainda não há questões suficientes';
-      document.getElementById('quiz-subtitle').textContent = 'Crie ao menos uma prova primeiro.';
+      document.getElementById('quiz-subtitle').textContent = 'As provas que você já fez não têm questões objetivas suficientes pro sorteio.';
       return;
     }
 
@@ -117,11 +141,12 @@ async function loadRandomQuiz(){
       id: 'random-' + Date.now(),
       title: '🎲 Prova Aleatória',
       dateCreated: new Date().toISOString(),
+      isRandom: true,
       questions: selected
     };
 
     document.getElementById('quiz-title').textContent = quiz.title;
-    document.getElementById('quiz-subtitle').textContent = quiz.questions.length + ' questões sorteadas de todas as provas já criadas';
+    document.getElementById('quiz-subtitle').textContent = quiz.questions.length + ' questões sorteadas das provas que você já fez · não conta pro placar geral, é só revisão · só pode ser feita 1 vez';
     renderForm(quiz);
   }catch(err){
     console.error('Erro ao montar prova aleatória:', err);
@@ -241,7 +266,7 @@ async function onSubmit(e, quiz){
 
   const percent = Math.round((correctCount / objectiveTotal) * 100);
   document.getElementById('score-display').textContent = correctCount + ' / ' + objectiveTotal;
-  document.getElementById('score-detail').textContent = myName + ', você acertou ' + percent + '% das questões objetivas.';
+  document.getElementById('score-detail').textContent = myName + ', você acertou ' + percent + '% das questões objetivas.' + (quiz.isRandom ? ' (essa prova aleatória não conta pro placar geral nem pra precisão por matéria — é só revisão)' : '');
   document.getElementById('result-panel').style.display = 'block';
   document.getElementById('result-panel').scrollIntoView({behavior:'smooth'});
   successFeedback();
@@ -255,6 +280,7 @@ async function onSubmit(e, quiz){
       total: objectiveTotal,
       percent: percent,
       answers: answers,
+      isRandom: !!quiz.isRandom,
       date: new Date().toISOString()
     });
   }catch(err){

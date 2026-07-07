@@ -167,7 +167,8 @@ listenStudyEntries(
   (err) => { document.getElementById('weekly-scoreboard').innerHTML = `<div class="error-state">Erro ao carregar: ${escapeHtml(err.message || String(err))}</div>`; }
 );
 listenQuizAttempts(
-  (attempts) => { allAttempts = attempts; attemptsLoaded = true; renderScoreboard(); },
+  // Prova Aleatória não conta pro placar — é só revisão pessoal.
+  (attempts) => { allAttempts = attempts.filter(a => !a.isRandom); attemptsLoaded = true; renderScoreboard(); },
   (err) => { document.getElementById('weekly-scoreboard').innerHTML = `<div class="error-state">Erro ao carregar: ${escapeHtml(err.message || String(err))}</div>`; }
 );
 </script>
