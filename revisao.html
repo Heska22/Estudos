@@ -27,6 +27,14 @@
     <p>Questões que você errou em provas anteriores — acerte de novo pra tirar da lista</p>
   </header>
 
+  <div class="card" style="display:flex; gap:14px; flex-wrap:wrap; align-items:center; justify-content:space-between;">
+    <div>
+      <p class="quiz-title" style="margin:0 0 4px;">🤖 Gerar prova com IA pra mim</p>
+      <div class="quiz-meta" id="ai-quiz-meta">Cria questões novas focadas nas matérias que você mais erra</div>
+    </div>
+    <button class="btn" id="ai-generate-btn">Gerar prova</button>
+  </div>
+
   <div id="wrong-list" class="loading-text">Carregando...</div>
 </div>
 
@@ -38,6 +46,7 @@ import { requireLogin, mountProfileChip } from "./auth.js";
 import { listenWrongQuestions, removeWrongQuestion } from "./firebase-init.js";
 import { SUBJECTS, subjectLabel, subjectColor } from "./subjects.js";
 import { successFeedback, errorFeedback } from "./haptics.js";
+import { AI_WORKER_URL } from "./ai-config.js";
 
 const myName = await requireLogin();
 mountProfileChip(myName);
@@ -118,6 +127,64 @@ document.getElementById('wrong-list').addEventListener('click', async (e) => {
   } else {
     fb.innerHTML = '<span style="color:var(--bad); font-size:0.85rem;">✘ Ainda não é essa. Continue tentando!</span>';
     errorFeedback();
+  }
+});
+
+document.getElementById('ai-generate-btn').addEventListener('click', async () => {
+  const btn = document.getElementById('ai-generate-btn');
+  const metaEl = document.getElementById('ai-quiz-meta');
+
+  if(!AI_WORKER_URL){
+    metaEl.innerHTML = '<span style="color:var(--bad);">Configuração pendente: preencha AI_WORKER_URL em ai-config.js (veja cloudflare-worker.js pra criar o Worker gratuito).</span>';
+    return;
+  }
+
+  if(myWrongItems.length === 0){
+    metaEl.innerHTML = '<span style="color:var(--muted);">Erre algumas questões em provas primeiro — a IA usa isso pra saber onde focar.</span>';
+    return;
+  }
+
+  const bySubject = {};
+  myWrongItems.forEach(item => {
+    const s = item.subject || 'geral';
+    bySubject[s] = (bySubject[s] || 0) + 1;
+  });
+  const weakSubjects = Object.entries(bySubject)
+    .map(([subject, wrongCount]) => ({ subject, wrongCount }))
+    .sort((a,b) => b.wrongCount - a.wrongCount)
+    .slice(0, 5);
+
+  btn.disabled = true;
+  btn.textContent = 'Gerando...';
+  metaEl.textContent = 'Pedindo pra IA montar suas questões, só um instante...';
+
+  try{
+    const res = await fetch(AI_WORKER_URL, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ weakSubjects, count: 8 })
+    });
+    const data = await res.json();
+    if(!res.ok || data.error) throw new Error(data.error || 'Erro ao gerar prova.');
+    if(!Array.isArray(data.questions) || data.questions.length === 0) throw new Error('A IA não retornou nenhuma questão.');
+
+    const quiz = {
+      id: 'ia-' + Date.now(),
+      title: '🤖 Prova gerada por IA',
+      dateCreated: new Date().toISOString(),
+      isRandom: true,
+      isAI: true,
+      questions: data.questions
+    };
+    sessionStorage.setItem('aiGeneratedQuiz', JSON.stringify(quiz));
+    window.location.href = 'prova-jogar.html?ia=1';
+  }catch(err){
+    console.error(err);
+    metaEl.innerHTML = '<span style="color:var(--bad);">Não deu certo: ' + escapeHtml(err.message || String(err)) + '</span>';
+    errorFeedback();
+  } finally {
+    btn.disabled = false;
+    btn.textContent = 'Gerar prova';
   }
 });
 

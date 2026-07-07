@@ -53,9 +53,12 @@ mountProfileChip(myName);
 const params = new URLSearchParams(window.location.search);
 const quizId = params.get('id');
 const isRandom = params.get('random') === '1';
+const isAI = params.get('ia') === '1';
 const randomCount = parseInt(params.get('n')) || 15;
 
-if(isRandom){
+if(isAI){
+  loadAIQuiz();
+} else if(isRandom){
   loadRandomQuiz();
 } else if(!quizId){
   document.getElementById('quiz-title').textContent = 'Prova não encontrada';
@@ -89,6 +92,32 @@ async function loadQuiz(id){
   }catch(err){
     console.error('Erro ao carregar prova:', err);
     document.getElementById('quiz-title').textContent = 'Não foi possível carregar esta prova';
+    document.getElementById('quiz-subtitle').innerHTML = '<span style="color:var(--bad);">Erro técnico: ' + escapeHtml(err.message || String(err)) + '</span>';
+  }
+}
+
+function loadAIQuiz(){
+  try{
+    const raw = sessionStorage.getItem('aiGeneratedQuiz');
+    sessionStorage.removeItem('aiGeneratedQuiz');
+    if(!raw){
+      document.getElementById('quiz-title').textContent = 'Nenhuma prova gerada encontrada';
+      document.getElementById('quiz-subtitle').innerHTML = 'Volte na Revisão e clique em "Gerar prova" de novo. <a href="revisao.html">Ir para Revisão</a>.';
+      return;
+    }
+    const quiz = JSON.parse(raw);
+    if(!Array.isArray(quiz.questions) || quiz.questions.length === 0){
+      document.getElementById('quiz-title').textContent = 'A IA não gerou questões';
+      document.getElementById('quiz-subtitle').innerHTML = '<a href="revisao.html">Voltar para Revisão</a>.';
+      return;
+    }
+    quiz.questions = quiz.questions.map(q => ({ ...q, sourceQuizId: quiz.id, sourceQuizTitle: quiz.title, subject: q.subject || 'geral' }));
+    document.getElementById('quiz-title').textContent = quiz.title;
+    document.getElementById('quiz-subtitle').textContent = quiz.questions.length + ' questões inéditas geradas pela IA com base no que você mais erra · não conta pro placar geral';
+    renderForm(quiz);
+  }catch(err){
+    console.error('Erro ao carregar prova da IA:', err);
+    document.getElementById('quiz-title').textContent = 'Não foi possível carregar a prova gerada';
     document.getElementById('quiz-subtitle').innerHTML = '<span style="color:var(--bad);">Erro técnico: ' + escapeHtml(err.message || String(err)) + '</span>';
   }
 }
