@@ -95,12 +95,12 @@ function handleFile(file){
 
   const reader = new FileReader();
   reader.onload = (e) => {
-    document.getElementById('drop-zone-text').textContent = '✔ ' + file.name;
     try{
       parsedQuestions = JSON.parse(e.target.result);
       if(!Array.isArray(parsedQuestions)) throw new Error('O arquivo precisa conter uma lista (array) de questões.');
       if(parsedQuestions.length === 0) throw new Error('A lista de questões está vazia.');
 
+      document.getElementById('drop-zone-text').textContent = '✔ ' + file.name;
       previewBox.innerHTML = '<h4>Pré-visualização (' + parsedQuestions.length + ' questões)</h4>' +
         parsedQuestions.map((q, i) => `
           <div style="padding:10px 0; border-bottom:1px solid var(--rule); font-family:'Helvetica Neue',Arial,sans-serif;">
@@ -111,6 +111,7 @@ function handleFile(file){
 
       publishBtn.style.display = 'inline-block';
     }catch(err){
+      document.getElementById('drop-zone-text').textContent = '⚠ ' + file.name + ' (inválido)';
       previewBox.innerHTML = '<p style="color:var(--bad);">Arquivo JSON inválido: ' + escapeHtml(err.message) + '</p>';
       publishBtn.style.display = 'none';
       parsedQuestions = null;

@@ -123,6 +123,8 @@ document.getElementById('wrong-list').addEventListener('click', async (e) => {
       await removeWrongQuestion(myName, item.sourceQuizId, item.questionId);
     }catch(err){
       console.error(err);
+      fb.innerHTML = '<span style="color:var(--bad); font-size:0.85rem;">✔ Certo, mas não consegui salvar isso agora. Tenta de novo.</span>';
+      btn.disabled = false;
     }
   } else {
     fb.innerHTML = '<span style="color:var(--bad); font-size:0.85rem;">✘ Ainda não é essa. Continue tentando!</span>';

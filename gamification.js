@@ -17,13 +17,13 @@ export function calculateStreak(entries, authorName){
 
   const oneDay = 24*60*60*1000;
   const today = new Date(); today.setHours(0,0,0,0);
-  const todayStr = today.toISOString().slice(0,10);
+  const todayStr = localDateStr(today);
 
   let cursor = dates.includes(todayStr) ? today : new Date(today.getTime() - oneDay);
   let streak = 0;
 
   while(true){
-    const cursorStr = cursor.toISOString().slice(0,10);
+    const cursorStr = localDateStr(cursor);
     if(dates.includes(cursorStr)){
       streak++;
       cursor = new Date(cursor.getTime() - oneDay);
@@ -32,6 +32,15 @@ export function calculateStreak(entries, authorName){
     }
   }
   return streak;
+}
+
+// "YYYY-MM-DD" no fuso horário local (toISOString() converteria pra UTC e podia
+// bagunçar a sequência de dias perto da meia-noite, dependendo do fuso).
+function localDateStr(d){
+  const yyyy = d.getFullYear();
+  const mm = String(d.getMonth() + 1).padStart(2, '0');
+  const dd = String(d.getDate()).padStart(2, '0');
+  return `${yyyy}-${mm}-${dd}`;
 }
 
 export function calculateXP(entries, attempts, authorName){

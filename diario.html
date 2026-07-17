@@ -98,9 +98,19 @@ import { staggerFadeIn } from "./animations.js";
 import { enableLightbox } from "./lightbox.js";
 enableLightbox('#entries-list');
 
+// Monta "YYYY-MM-DD" a partir do fuso horário local (evita bug de virar o dia errado
+// perto da meia-noite, que acontecia usando valueAsDate/toISOString direto).
+function todayLocalStr(){
+  const d = new Date();
+  const yyyy = d.getFullYear();
+  const mm = String(d.getMonth() + 1).padStart(2, '0');
+  const dd = String(d.getDate()).padStart(2, '0');
+  return `${yyyy}-${mm}-${dd}`;
+}
+
 const myName = await requireLogin();
 mountProfileChip(myName);
-document.getElementById('entry-date').valueAsDate = new Date();
+document.getElementById('entry-date').value = todayLocalStr();
 let editingId = null;
 
 // popular selects de matéria
@@ -188,7 +198,7 @@ document.getElementById('entry-form').addEventListener('submit', async function(
 
 function resetForm(){
   document.getElementById('entry-form').reset();
-  document.getElementById('entry-date').valueAsDate = new Date();
+  document.getElementById('entry-date').value = todayLocalStr();
   document.getElementById('photo-preview').innerHTML = '';
   document.getElementById('custom-subject-wrap').style.display = 'none';
   pendingPhoto = null;
